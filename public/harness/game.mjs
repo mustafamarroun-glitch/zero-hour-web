@@ -2,7 +2,14 @@ import './storage-scope.js';
 import {assetLibrary} from './launcher-asset-manager.mjs';
 const params=new URLSearchParams(location.search), name=params.get('commander');
 let ready=false;
-let roomTimer;
+let roomTimer,healthTimer,healthBusy=false,displayBusy=false,showPerformance=false;
+const canvas=document.querySelector('#viewport');
+let display={width:Number(params.get('width'))||1280,height:Number(params.get('height'))||720};
+if(![1024,1280,1600,1920].includes(display.width)&&!(display.width>=800&&display.width<=1920))display.width=1280;
+if(!(display.height>=600&&display.height<=1080))display.height=720;
+let scaling='fit';
+function fitCanvas(){canvas.style.width=`min(100vw, ${scaling==='actual'?`${display.width}px`:`calc(100vh * ${display.width} / ${display.height})`})`;canvas.style.height=`min(100vh, ${scaling==='actual'?`${display.height}px`:`calc(100vw * ${display.height} / ${display.width})`})`;canvas.style.objectFit='contain'}
+canvas.width=display.width;canvas.height=display.height;fitCanvas();
 let controlSignature='';
 const controlNames=/^LanGameOptionsMenu\.wnd:ComboBox(PlayerTemplate|Color|Team|Player)([0-7])$/;
 const report=message=>{document.querySelector('#status').textContent=message;parent.postMessage({type:'zh-status',message},location.origin)};
@@ -14,6 +21,9 @@ export async function boot(){
     window.__cncDiagLevel='lite';
     await import('./bridge.js');
     await assetLibrary.archivesForLaunch();
+    // Archive-only installations may not include loose original cursor art.
+    // Use the browser arrow instead of requesting upstream developer artifacts.
+    window.__zhUseSystemCursor=!assetLibrary.summary().originalCursors;
     await checked('resumeBrowserAudioRuntime',{trigger:'standalone-launch'});
     report('Mounting your local archives…');
     await checked('mountPreparedArchives',{path:'/assets/real-init',verifyEach:false,archives:assetLibrary.preparedArchives,videos:[],includeVideos:false});
@@ -23,7 +33,7 @@ export async function boot(){
       await checked('browserWebRtcEndpointConnect',{room:`zhweb-${params.get('room')}`,peerId:params.get('guest'),displayName:name,relayUrls:[new URL(config.signaling,location.href).href.replace(/^http/,'ws')],iceServers:config.iceServers||[],timeoutMs:30000});
     }
     report('Initializing the engine…');
-    const init=await checked('realEngineInit',{runDirectory:'/assets/real-init',shellMap:false,stepped:true,commanderName:name,bootWidth:1280,bootHeight:720});
+    const init=await checked('realEngineInit',{runDirectory:'/assets/real-init',shellMap:false,stepped:true,commanderName:name,bootWidth:display.width,bootHeight:display.height});
     if(init.frontier?.initReturned!==true)throw Error('Engine initialization did not complete.');
     await checked('realEngineSetLoadStepping',{enabled:true,budgetMs:5});
     await checked('threadedStartLoop',{clientFps:60,logicFps:30});
@@ -36,7 +46,6 @@ export async function boot(){
       await checked('postMessage',{message:0x200,lParam:(point.y<<16)|point.x,point});
       await checked('realEngineFrame',{frames:1});
     }
-    parent.postMessage({type:'zh-ready',name,init},location.origin);
     if(params.get('room'))await enterRoom();
     else{
       await clickWhenReady('MainMenu.wnd:ButtonSinglePlayer');
@@ -46,6 +55,16 @@ export async function boot(){
       await checked('agentUiSubmit',{windowId:entry.id,name:entry.name});
       report('Choose your battlefield, faction and AI opponents. Your commander name is already set.');
     }
+    parent.postMessage({type:'zh-ready',name,init},location.origin);
+    healthTimer=setInterval(async()=>{
+      if(healthBusy||displayBusy)return;healthBusy=true;
+      try{
+        const result=await checked('realEngineFrame',{frames:1});
+        const state=result.frame?.clientState;
+        parent.postMessage({type:'zh-gameplay',inGame:state?.gameplay?.inGame===true&&!state?.gameplay?.loadingMap},location.origin);
+        if(showPerformance){const status=(await checked('threadedStatus')).status;const renderer=status?.graphics?.renderer||'';parent.postMessage({type:'zh-performance',renderer:/SwiftShader/i.test(renderer)?'Software graphics':'Graphics',width:display.width,height:display.height,logicFrame:state?.logicFrame??state?.gameplay?.logicFrame},location.origin)}
+      }catch(error){parent.postMessage({type:'zh-error',message:error.message},location.origin)}finally{healthBusy=false}
+    },2000);
   }catch(error){report(error.message);document.querySelector('#retry').hidden=false;parent.postMessage({type:'zh-error',message:error.message},location.origin)}
 }
 async function clickWhenReady(windowName){
@@ -103,10 +122,30 @@ async function sendRoomControls(){
 }
 document.querySelector('#retry').onclick=()=>parent.postMessage({type:'zh-exit'},location.origin);
 window.addEventListener('cncport:threadedlooperror',e=>parent.postMessage({type:'zh-error',message:e.detail?.error||'Engine loop stopped. Exit and relaunch.'},location.origin));
+window.addEventListener('cncport:resolutionchange',e=>{display={width:e.detail.width,height:e.detail.height};fitCanvas()});
+document.addEventListener('keydown',e=>{if(e.key==='F8'||(e.altKey&&e.key==='Enter')){e.preventDefault();e.stopImmediatePropagation();parent.postMessage({type:'zh-shortcut',action:e.key==='F8'?'toolbar':'fullscreen'},location.origin)}},true);
+canvas.addEventListener('pointerdown',()=>parent.postMessage({type:'zh-game-focus'},location.origin));
+document.addEventListener('pointermove',e=>{
+  if(!ready||e.target===canvas||e.pointerType==='touch'||e.buttons)return;
+  const box=canvas.getBoundingClientRect(),inset=window.__zhEdgeScrolling===false?8:0;
+  const point={x:Math.max(inset,Math.min(display.width-inset-1,Math.round((e.clientX-box.left)*display.width/box.width))),y:Math.max(inset,Math.min(display.height-inset-1,Math.round((e.clientY-box.top)*display.height/box.height)))};
+  void checked('postMessage',{message:0x200,lParam:(point.y<<16)|point.x,point}).catch(()=>{});
+});
 window.addEventListener('message',async e=>{
   if(e.origin!==location.origin||e.source!==parent)return;
   try{
-    if(e.data.type==='zh-volume'){const value=Math.max(0,Math.min(1,Number(e.data.value)));await checked('setBrowserAudioMixerVolumes',{scriptVolumes:{music:value,sound:value,sound3D:value,speech:value}});}
+    if(e.data.type==='zh-volume'){const music=Math.max(0,Math.min(1,Number(e.data.music??e.data.value))),effects=Math.max(0,Math.min(1,Number(e.data.effects??e.data.value)));if(Number.isFinite(music)&&Number.isFinite(effects))await checked('setBrowserAudioMixerVolumes',{scriptVolumes:{music,sound:effects,sound3D:effects,speech:effects}});}
+    if(e.data.type==='zh-focus')canvas.focus({preventScroll:true});
+    if(e.data.type==='zh-input-neutral'&&ready){const point={x:Math.round(display.width/2),y:Math.round(display.height/2)};await checked('postMessage',{message:0x200,lParam:(point.y<<16)|point.x,point});}
+    if(e.data.type==='zh-display'){
+      window.__zhEdgeScrolling=e.data.edgeScroll!==false;showPerformance=e.data.performance===true;scaling=e.data.scaling==='actual'?'actual':'fit';fitCanvas();
+      if(e.data.resize&&ready&&!displayBusy){
+        const width=Number(e.data.width),height=Number(e.data.height);if(!Number.isInteger(width)||!Number.isInteger(height)||width<800||width>1920||height<600||height>1080)throw Error('Unsupported render resolution.');
+        displayBusy=true;
+        try{const result=await checked('setEngineResolution',{width,height});display=result.applied||{width,height};fitCanvas();parent.postMessage({type:'zh-display-result',ok:true,...display},location.origin)}
+        catch(error){parent.postMessage({type:'zh-display-result',ok:false,error:error.message,...display},location.origin)}finally{displayBusy=false}
+      }
+    }
     if(e.data.type==='zh-lan-command'&&params.get('room'))await checked('realEngineLanCommand',{action:e.data.action,value:e.data.value||''});
     if(e.data.type==='zh-lan-select'&&params.get('room')){
       if(!controlNames.test(e.data.name))throw Error('Unknown match setting.');
@@ -116,6 +155,7 @@ window.addEventListener('message',async e=>{
     }
     if(e.data.type==='zh-exit'){
       clearInterval(roomTimer);
+      clearInterval(healthTimer);
       if(ready){await checked('threadedStopLoop',{timeoutMs:15000});window.CnCPort.stopSavePersistenceScheduling();await window.CnCPort.persistFinalSaves('standalone-exit');await checked('browserWebRtcEndpointDisconnect');await checked('forceShutdownRuntime');}
       parent.postMessage({type:'zh-exited'},location.origin);
     }
@@ -123,7 +163,7 @@ window.addEventListener('message',async e=>{
       const result=await checked('threadedStatus');
       const frame=ready?await checked('realEngineFrame',{frames:1}):null;
       const transport=params.get('room')?await checked('browserWebRtcEndpointState'):null;
-      parent.postMessage({type:'zh-diagnostics',result,frame,transport,userAgent:navigator.userAgent,isolation:crossOriginIsolated,graphics:params.get('shaderTier'),date:new Date().toISOString()},location.origin);
+      parent.postMessage({type:'zh-diagnostics',version:'2.0.0',display,result,frame,transport,userAgent:navigator.userAgent,isolation:crossOriginIsolated,graphics:params.get('shaderTier'),date:new Date().toISOString()},location.origin);
     }
   }catch(error){parent.postMessage({type:'zh-error',message:error.message},location.origin)}
 });

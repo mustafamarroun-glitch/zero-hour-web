@@ -6178,7 +6178,7 @@ async function startOriginalCursorAnimation(cursorFile, retryAttempt = 0) {
 }
 
 function syncBrowserCursor(input = harnessState.browserInput) {
-  if (loadCursorStyle() === "system") {
+  if (loadCursorStyle() === "system" || window.__zhUseSystemCursor === true) {
     stopOriginalCursorAnimation();
     const css = "default";
     canvas.style.cursor = css;
@@ -25553,6 +25553,10 @@ window.addEventListener("pageshow", () => {
 canvas.addEventListener("pointermove", (event) => {
   if (touchControls.handlePointerMove?.(event)) return;
   const point = canvasInputPointFromEvent(event);
+  if (window.__zhEdgeScrolling === false) {
+    point.x = Math.max(8, Math.min((harnessState.engineDisplaySize?.width ?? canvas.width) - 9, point.x));
+    point.y = Math.max(8, Math.min((harnessState.engineDisplaySize?.height ?? canvas.height) - 9, point.y));
+  }
   void pushBrowserInputToWasmLite({
     cursor: point,
     win32Message: {
@@ -25567,7 +25571,9 @@ canvas.addEventListener("pointerleave", (event) => {
   const point = canvasInputPointFromEvent(event);
   const targetWidth = harnessState.engineDisplaySize?.width ?? canvas.width;
   const targetHeight = harnessState.engineDisplaySize?.height ?? canvas.height;
-  const inset = 4;
+  // Preserve the exact native edge while crossing the canvas into letterboxing.
+  // The parent explicitly neutralizes input when the toolbar/settings opens.
+  const inset = window.__zhEdgeScrolling === false ? 8 : 0;
   const interiorPoint = {
     x: Math.max(inset, Math.min(targetWidth - inset - 1, point.x)),
     y: Math.max(inset, Math.min(targetHeight - inset - 1, point.y)),

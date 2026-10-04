@@ -2,6 +2,23 @@
 
 Updated 2026-10-04. The source project's earlier results are context only; the following checks concern Zero Hour Web.
 
+## Version 2.0 acceptance
+
+- Version 1's exact working source/build snapshot passed every restored ZIP entry CRC and SHA-256; its Git bundle verified. `v1.0.0` preserves the committed baseline, and `VERSION_2.md` identifies the private snapshot and restore instructions.
+- Dark mode defaults on and both theme choices restore after reload. Setup/settings were inspected at 1440 × 900 and 390 × 844 with no horizontal overflow. The supplied ZIP/RAR Drive URLs are present; Drive sharing/download access was not independently established.
+- Actual local 1,093,310,765-byte ZIP and 857,593,023-byte RAR5 packages were extracted in Chrome, scanned and installed as 17 validated game archives. The solid RAR uses a 512 MB dictionary. Optional original cursor ANI files from the full packages are retained; an archive-only backup uses a system cursor fallback.
+- RAR cancellation and a damaged ZIP retained the previous installation and allowed retry. Temporary extraction cleanup passed, including stale-root cleanup after a restart. Success is shown after staging cleanup completes.
+- ZIP safety checks rejected traversal/absolute paths, duplicate game basenames, links, encryption, bad CRC and excessive expanded size. Nested STORE/DEFLATE fixtures extracted exact contents. Checks are in `tools/verify-archive-safety.cjs`.
+- The RAR-imported game booted the actual original-engine Alpine Assault skirmish with the default Intel D3D11 hardware renderer. All four game edges moved the real camera; left/right tests crossed into outside-canvas letterboxing. Edge scrolling can be disabled.
+- F8 reveals/hides the toolbar. A live shell resize to 1024 × 768 and a live match resize to 1600 × 900 reached the engine's display size. Original mouse selection and right-click movement worked after resize; the builder displaced by more than 20 world units.
+- Fullscreen and Alt + Enter exit passed. Active-match exit displayed confirmation, flushed/shut down, and returned to the lobby.
+- The final Version 2 gameplay run had no page errors or missing resources. Evidence is `.local/version-2-verification.json`; early verifier failures involved collapsed details, camera-scrolled-out builders and toggling an already visible toolbar. These were corrected in the verifier. A missing optional upstream cursor-art request was corrected with a system-cursor fallback.
+- Headerless subpath hosting, service-worker isolation, SharedArrayBuffer, commander restoration and preservation of another product's storage passed again for Version 2. The existing storage namespace remains unchanged.
+- The two-profile multiplayer regression passed: matching real installations, native host/guest discovery, synchronized map/faction/color/team/ready controls, real LAN terrain over WebRTC, replicated native mouse movement, and a 30-second observation without CRC mismatch. The toolbar stays visible in the native room setup and collapses during the match. This remains local preliminary multiplayer evidence, not a completed internet match.
+- The release packager prepared 84 site files (38.1 MB) and corresponding interface source. Script/module and pinned runtime/source/decoder checksum checks passed. Private browser profiles, retail game data and backup evidence are excluded from hosting.
+
+The tests use headless Windows Chrome on one PC. The remaining physical-device, Mac, audible playback, complete-match, internet-network and fresh compiler gates below still apply. Drive link contents were not downloaded by the app during these tests; the local packages were used.
+
 ## Completed so far
 
 - Fresh disposable Windows browser profile imported the real combined English installation using the folder fallback; 17 archives, approximately 1.62 GiB, stayed in OPFS.

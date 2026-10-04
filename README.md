@@ -4,13 +4,17 @@ Standalone Generals Zero Hour browser interface using the real New Shoes threade
 
 ## Start
 
+For a plain-text player guide covering setup, controls, multiplayer and backups, see [README.txt](README.txt).
+
 Install Node.js 22 or newer, then run `npm ci` and `npm start`. Open **http://localhost:8093/**. Keep this exact origin and browser profile to retain imported archives and saves. The standalone room and signaling endpoints run on the same local server. Ctrl+C stops only this project.
 
-Enter a 2–12 character commander name, select the original installation's Data folder, and wait for validation and browser-local installation. The inspected combined English profile requires 17 real archives. Import reads your files; it never uploads or modifies the installation. The folder-input fallback works without `showDirectoryPicker`. ZIP exports must be extracted before importing.
+Version **2.0.0** defaults to dark mode and remembers theme/settings choices. Enter a 2–12 character commander name, choose one ZIP/RAR or the original installation's Data folder, and wait for extraction, validation and browser-local installation. The inspected combined English profile requires 17 real archives. Import reads your files; it never uploads or modifies the installation. The folder-input fallback works without `showDirectoryPicker`. ZIP backups can be imported directly. See [VERSION_2.md](VERSION_2.md) for scope and the verified Version 1 restore point.
 
 The game opens directly into skirmish options. The website name is passed into engine initialization and the native skirmish field. Guest IDs are generated independently of display names. Names are not authenticated accounts. Browser storage must be enabled; private profiles are unsuitable for persistent large installations.
 
-The published site starts with a fresh library rather than adopting another product's files. Import again or extract a local ZIP backup. Browser-wide clearing of this GitHub Pages origin removes every product's data, so back up each library first. A separate browser profile or dedicated hostname provides stronger separation of quota and site-wide clearing.
+This site keeps its library separate from other products and retains its Version 1 namespace when upgrading to Version 2. Import again or choose a local ZIP backup to move libraries between products. Browser-wide clearing of this GitHub Pages origin removes every product's data, so back up each library first. A separate browser profile or dedicated hostname provides stronger separation of quota and site-wide clearing.
+
+During play, the toolbar hides automatically. **F8** reveals/hides it; **Alt + Enter** toggles fullscreen. Settings controls actual engine resolution, aspect-preserving display size, edge scrolling, music/effects, the renderer for next launch, and optional performance information. Installed files & recovery offers validation, storage/persistence information, backup, replacement and removal. A running match prompts before a clean exit. The supplied Get ZIP / Get RAR buttons open Google Drive; the browser importer does not fetch or upload their contents.
 
 ## Verification and release
 

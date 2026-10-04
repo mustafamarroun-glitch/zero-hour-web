@@ -1,0 +1,28 @@
+{
+  "name": "node-unrar-js",
+  "version": "2.0.2",
+  "revision": "b8a26b187d03a33506af778fa8c8e0adc60b7755",
+  "npmIntegrity": "sha512-hLNmoJzqaKJnod8yiTVGe9hnlNRHotUi0CreSv/8HtfRi/3JnRC8DvsmKfeGGguRjTEulhZK6zXX5PXoVuDZ2w==",
+  "files": [
+    {
+      "path": "public/harness/vendor/unrar/Extractor.mjs",
+      "sha256": "4e6ac19f6adda919248066c361137927e2add5b366087792348eb4737c54255e"
+    },
+    {
+      "path": "public/harness/vendor/unrar/unrar.mjs",
+      "sha256": "2f6d35bcf13656600d332dbd009fbcfdafa4a324896dca69252865b35ef36096"
+    },
+    {
+      "path": "public/harness/vendor/unrar/unrar.wasm",
+      "sha256": "c7d79f869196e3c79c053ba74a8f629116de8293a94f60cc851bbcd7977d0c2b"
+    },
+    {
+      "path": "public/source/node-unrar-js-2.0.2-source.tar.gz",
+      "sha256": "d0cefe15f8484fe718596730f4f98cab630a56296d03752048f4abc322c344c0"
+    },
+    {
+      "path": "public/source/unrarsrc-6.1.7.tar.gz",
+      "sha256": "de75b6136958173fdfc530d38a0145b72342cf0d3842bf7bb120d336602d88ed"
+    }
+  ]
+}
