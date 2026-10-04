@@ -30,7 +30,12 @@ export async function boot(){
     ready=true;
     document.querySelector('#loading').hidden=true;
     document.querySelector('#viewport').focus();
-    for(const point of [{x:32,y:32},{x:96,y:96}])await checked('postMessage',{message:0x200,lParam:(point.y<<16)|point.x,point});
+    // The native menu reveals its buttons after two distinct mouse positions.
+    // Consume each position in a frame so the input queue cannot coalesce them.
+    for(const point of [{x:32,y:32},{x:96,y:96},{x:160,y:120}]){
+      await checked('postMessage',{message:0x200,lParam:(point.y<<16)|point.x,point});
+      await checked('realEngineFrame',{frames:1});
+    }
     parent.postMessage({type:'zh-ready',name,init},location.origin);
     if(params.get('room'))await enterRoom();
     else{

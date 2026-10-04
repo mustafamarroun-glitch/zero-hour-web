@@ -93,6 +93,7 @@ window.addEventListener('message',e=>{
   if(d.type==='zh-room-state'){
     const state=d.state,slots=state?.game?.slots||[];
     $('gameStatus').textContent=state?.network?.ready?`${state.network.logicFrame>0?'Match running':'Waiting for simulation'} · frame ${state.network.logicFrame}${state.network.crcMismatch?' · DESYNC: exit and report diagnostics':''}`:`${slots.filter(s=>s.human).length}/2 engine players · ${slots.filter(s=>s.human&&s.accepted).length} ready`;
+    if(state?.network?.ready&&d.transport?.endpoint?.openPeers===0)$('gameStatus').textContent='Game peer disconnected. Exit and reconnect before starting another match.';
     $('gameStart').disabled=slots.filter(s=>s.human).length!==2||slots.filter(s=>s.human).some(s=>!s.accepted||!s.hasMap);
     $('gameReady').disabled=!!state?.network?.ready;
     if(state?.game?.map)$('gameMap').value=state.game.map;
