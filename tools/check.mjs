@@ -1,5 +1,5 @@
 import {readFile,readdir,stat} from 'node:fs/promises';
-import {resolve,dirname} from 'node:path';
+import {resolve,dirname,sep} from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 let count=0;const files=[];
@@ -10,7 +10,7 @@ for(const file of files){
  if(/\.(mjs|js|cjs)$/.test(file)){
   const result=spawnSync(process.execPath,['--check',file],{encoding:'utf8'});if(result.status)throw Error(result.stderr);
   const text=await readFile(file,'utf8');
-  if(file.includes('public'))for(const match of text.matchAll(/(?:from\s*|import\s*|import\(|importScripts\(|new URL\()\s*["'](\.\.?\/[^"']+)["']/g)){
+  if(file.startsWith(resolve('public')+sep))for(const match of text.matchAll(/(?:from\s*|import\s*|import\(|importScripts\(|new URL\()\s*["'](\.\.?\/[^"']+)["']/g)){
    if(!/\.(mjs|js)$/.test(match[1]))continue;
    if(!(await stat(resolve(dirname(file),match[1])).catch(()=>null)))throw Error(`Missing module ${file}: ${match[1]}`);
   }

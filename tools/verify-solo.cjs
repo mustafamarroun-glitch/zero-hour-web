@@ -1,8 +1,9 @@
 const {chromium}=require('playwright');const fs=require('node:fs/promises');const path=require('node:path');
 (async()=>{
  const site=process.env.ZH_SITE_URL||'http://localhost:8093/',profile=process.env.ZH_PROFILE||'.local/acceptance-browser',reportFile=process.env.ZH_REPORT||'.local/solo-verification.json';
- const report={checks:[],errors:[],missing:[],site,scope:'Windows Chrome, headless software renderer, disposable standalone profile, actual installed retail archives'};
- const ctx=await chromium.launchPersistentContext(path.resolve(profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
+ const software=process.env.ZH_RENDERER!=='hardware';
+ const report={checks:[],errors:[],missing:[],site,rendererRequested:software?'SwiftShader':'Default Windows Chrome',scope:'Windows Chrome, headless disposable standalone profile, actual installed retail archives'};
+ const ctx=await chromium.launchPersistentContext(path.resolve(profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]});
  const page=ctx.pages()[0]||await ctx.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()===404)report.missing.push(r.url())});
  const timer=setInterval(()=>console.log('SOLO',report.stage),20000);
  let game;
@@ -17,6 +18,7 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   await page.locator('#lobby').waitFor({state:'visible'});report.isolation=await page.evaluate(async()=>({isolated:crossOriginIsolated,directory:(await navigator.storage.getDirectory()).name}));if(!report.isolation.isolated||report.isolation.directory!=='zero-hour-web-v1')throw Error('Engine isolation or dedicated storage boundary missing');
   await page.reload();await page.locator('#lobby').waitFor({state:'visible',timeout:30000});report.checks.push('Installed library and commander restore on this site after reload');
   await page.locator('#solo').click();await page.waitForFunction(()=>{const w=document.getElementById('gameFrame').contentWindow;return !!w?.CnCPort?.rpc&&w.document.getElementById('loading')?.hidden===true},null,{timeout:120000});game=page.frames().find(f=>f.url().includes('game.html'));
+  report.renderer=(await rpc('threadedStatus')).status?.graphics?.renderer;
   report.stage='Menu reveal';await page.mouse.move(800,420);await rpc('postMessage',{message:0x200,lParam:(320<<16)|400,point:{x:400,y:320}});
   await wait('Skirmish options',()=>rpc('queryWindowByName',{name:'SkirmishGameOptionsMenu.wnd:ButtonStart'}),r=>r.result?.clickable===true);
   await wait('Commander name',()=>rpc('queryWindowByName',{name:'SkirmishGameOptionsMenu.wnd:TextEntryPlayerName'}),r=>r.result?.entryText==='FieldTest');report.checks.push('Website commander name appears in the actual native skirmish field');report.stage='Skirmish settings';report.settings=(await rpc('realEngineFrame',{frames:1})).frame?.clientState;

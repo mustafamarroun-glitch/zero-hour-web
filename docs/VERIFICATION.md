@@ -14,7 +14,12 @@ Updated 2026-10-04. The source project's earlier results are context only; the f
 - Clean engine shutdown, save flushing and relaunch restored the same installation. The complete solo verifier passed without page errors or missing resources.
 - Two actual local Chrome installations matched complete archive SHA-256 fingerprints. Real WebRTC channels discovered/joined the native LAN game with `FieldTest` and `FieldGuest`.
 - Website map, faction, color, team, ready and start controls reached original native callbacks and synchronized between the two engines. Both loaded real LAN battlefields.
-- Early multiplayer movement checks failed. The verifier issued an order at frame zero and treated position arrays as coordinate objects; these results do not establish an engine movement defect. After fixing native menu reveal and waiting for identical final settings, both simulations advanced past frame 300 without CRC mismatch. Native mouse movement replication remains under verification.
+- Native mouse selection and right-click movement passed in a real two-player LAN match. The same host worker displaced and appeared at matching positions on the guest engine (within 5 world units between asynchronous observations). Both simulations continued for a 30-second observation without CRC mismatch. This is preliminary local gameplay proof, not a completed internet match.
+- Earlier movement failures came from issuing a diagnostic order at frame zero and treating position arrays as coordinate objects. The verifier now waits for advancing simulation and a settled viewport and uses actual native mouse input. Native menu reveal also consumes distinct input positions in separate frames.
+- The published HTTPS GitHub Pages site passed actual 17-archive import, isolation, commander restoration, native skirmish/name, mouse movement, completed barracks and clean exit/relaunch, without page errors or missing resources.
+- Default Windows Chrome also passed the complete solo flow. The actual engine worker reports `ANGLE (Intel, Intel(R) Graphics (0x0000A7AB) Direct3D11 vs_5_0 ps_5_0, D3D11)`; this run did not force SwiftShader.
+- Backup cancellation returned control without an incomplete download. The full 1,738,014,782-byte ZIP downloaded locally; all 17 entries pass CRC validation and match original SHA-256 hashes byte-for-byte. Extraction and import on a second physical device are not established by this comparison.
+- The actual published Create room control sent the installed content fingerprint over secure WSS. Two published endpoint modules discovered through the approved Cloudflare Nostr service and exchanged exact datagram bytes in both directions. This verifies public service components separately from full engine gameplay on different networks.
 - Headerless static hosting at `/zero-hour-web/` passed service-worker isolation, SharedArrayBuffer availability, relative module loading and commander restoration in a fresh Chrome profile.
 - The dedicated OPFS directory and storage-key namespace passed a shared-origin preservation check: another product's directory remains intact, its keys are hidden from this product, and scoped clearing preserves its original value.
 - Upstream source ZIP contents were inspected. Seven unused Windows DLL/compiler binaries were excluded from the public source copy; 7,527 source entries and original notices remain. Checks verify published source hashes, runtime hashes and ZIP entry boundaries.
@@ -25,14 +30,22 @@ Private evidence is under `.local/*verification.json` and `output/playwright/`. 
 
 ## Remaining gates
 
-Sustained synchronized multiplayer, real Mac graphics, hardware-renderer gameplay, separate-network completion, a completed solo match, audible playback, full-size ZIP migration and public HTTPS gameplay remain pending until specifically recorded below. A menu, room list, fixture or checksum is not gameplay proof.
+Real Mac graphics, a completed multiplayer match on separate computers/networks, longer multiplayer reliability, a completed solo match, audible playback, second-device ZIP extraction/import and a fresh compiler rebuild remain pending. A menu, room list, fixture or checksum is not gameplay proof.
 
-The current browser automation uses headless Windows Chrome with explicit SwiftShader. This establishes Windows engine functionality with software rendering; it does not verify an RTX hardware path, audible playback, macOS or two physical computers.
+Browser automation used headless Windows Chrome with explicit SwiftShader for public solo and local multiplayer, and the default Intel D3D11 hardware renderer for a separate complete solo run. Audible playback, macOS and two physical computers are unverified.
 
-A separate default-renderer run failed to reach the host's native LAN lobby. This is a navigation failure, not proof of a specific GPU rendering defect. No macOS device is available in this environment; the earlier Mac corruption report cannot be reproduced or resolved here without actual Mac diagnostics. Compiler rebuild instructions are provided, but a fresh Docker engine rebuild has not been run for this release.
+An earlier default-renderer LAN run failed during native menu entry before the menu reveal fix; the later default-renderer solo run passed. No macOS device is available in this environment; the earlier Mac corruption report cannot be reproduced or resolved here without actual Mac diagnostics. Compiler rebuild instructions are provided, but a fresh Docker engine rebuild has not been run for this release.
 
 ## Separate-device acceptance
 
 Use matching compatible archives on both computers. Import independently on the deployed HTTPS origin. On Windows Chrome and Mac Chrome, record exact browser version, macOS version, GPU and hardware-acceleration state. First run Alpine Assault solo against one Easy Army, select/move a worker, and complete a building. Capture a local diagnostic download while the actual battlefield is visible. If Mac renders black/white or corrupted geometry, repeat with Compatibility mode and then Shader effects and preserve both reports/captures.
 
-After both solo gates pass: use different internet networks, create a room, share its invite, verify distinct names in the native player list, choose opposing factions/teams and distinct colors, select Alpine Assault, ready both players, and start as host. Each player moves a unit and builds a structure while the other observes. Complete a normal match, verify the same winner and absence of CRC mismatch, and record reconnect/disconnect behavior. This is the final internet gate; two local profiles are only preliminary evidence.
+After both solo gates pass:
+
+1. Put the computers on different internet networks. Keep this PC's approved temporary service/tunnel running. Open https://mustafamarroun-glitch.github.io/zero-hour-web/ on both computers and restore/import matching files under distinct commander names.
+2. Host creates a room and shares its invite. Guest joins. Verify both names and matching fingerprints, then both click Enter game room and wait for `2/2 engine players`.
+3. Select Alpine Assault, opposing factions/teams and different colors. Wait for the final settings to match on both engines. Guest clicks Ready, then host clicks Ready; if changing a setting resets readiness, ready again. Host starts only when both original players report accepted and map availability.
+4. Wait for actual terrain and an advancing frame counter. Each player selects/moves a worker and completes a building while the other observes. Download diagnostics on both clients during active gameplay.
+5. Complete a normal match. Verify both report the same winner and no CRC mismatch; record disconnect/reconnect behavior. A reconnect may require leaving the room and starting a new match; mid-match resume is not verified.
+
+This is the final internet acceptance gate. The current same-PC tests do not establish NAT traversal on different networks, a TURN fallback, Mac graphics or full-match reliability.

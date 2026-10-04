@@ -110,4 +110,5 @@ window.addEventListener('message',e=>{
     }));$('matchControls').hidden=!d.controls.length;
   }
 });
+$('nameForm').querySelector('button').disabled=false;
 restore();
