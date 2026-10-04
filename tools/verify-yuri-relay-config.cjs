@@ -4,7 +4,7 @@ const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 runBrowserTest(async()=>{
  const ctx=await launchTestContext(chromium,'yuri-relay-config',{channel:'chrome',headless:true});
  try{
-  await ctx.route('**/yuri/engine/runtime/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><canvas id="screen"></canvas>'}));
+  await ctx.route('**/yuri/runtime.html*',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><canvas id="screen"></canvas>'}));
   const page=ctx.pages()[0]||await ctx.newPage(),code='a'.repeat(24);
   const check=async expected=>{await page.goto('http://localhost:8093/yuri/play.html?session='+code);await page.waitForFunction(()=>document.getElementById('runtime').src.includes('network=1'));const url=new URL(await page.locator('#runtime').getAttribute('src'));assert.equal(url.searchParams.get('relay'),expected)};
   await check('ws://localhost:8093/yuri-'+code);

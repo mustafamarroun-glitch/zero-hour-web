@@ -3,10 +3,11 @@ import './harness/storage-scope.js';
 import {PROFILES} from './game-profiles.mjs';
 import {buildArchiveZip,buildFileZip} from './harness/launcher-backup-zip.mjs';
 import {extractGameArchive,cleanArchiveStaging} from './harness/archive-import.mjs';
-import {VERSION,DEFAULTS,loadPreferences,savePreferences,resolutionSize} from './preferences.mjs';
+import {VERSION,DEFAULTS,gameDefaults,loadPreferences,savePreferences,resolutionSize} from './preferences.mjs';
 import {diagnosticReport,recordError} from './diagnostics.mjs';
 const $=id=>document.getElementById(id), key='zhweb-identity-v1';
 const profile=PROFILES[document.documentElement.dataset.game]||PROFILES['zero-hour'],isYuri=profile.id==='yuri';
+if(matchMedia('(pointer: coarse)').matches){$('hideToolbar').textContent='Hide';$('revealToolbar').textContent='Menu';}
 const {assetLibrary}=await import(isYuri?'./yuri/library.mjs':'./harness/launcher-asset-manager.mjs');
 let identity,installed=false,importing=false,importController,backupController,zipUrl,roomSocket,roomState,connecting=false,gameReady=false,inMatch=false,hideTimer,resizeTimer,confirmCallback;
 let preferences=loadPreferences(profile.id),releaseGameFiles,restoreTask=Promise.resolve();
@@ -167,7 +168,7 @@ restore();
 function postGame(data){if(!$('gameView').hidden)$('gameFrame').contentWindow.postMessage(data,location.origin)}
 function currentResolution(){return resolutionSize(preferences.resolution,$('gameFrame').clientWidth||innerWidth,$('gameFrame').clientHeight||innerHeight)}
 function sendAudio(){if(isYuri){$('settingsStatus').textContent='Yuri audio changes are saved and apply on your next launch.';return}if(gameReady)postGame({type:'zh-volume',music:preferences.music/100,effects:preferences.effects/100})}
-function sendDisplay(resize=true){if(isYuri){$('settingsStatus').textContent='Yuri display and scrolling changes are saved and apply on your next launch.';return}if(gameReady)postGame({type:'zh-display',...currentResolution(),resize,scaling:preferences.scaling,edgeScroll:preferences.edgeScroll,performance:preferences.performance})}
+function sendDisplay(resize=true){if(isYuri){postGame({type:'zh-display',performance:preferences.performance});$('settingsStatus').textContent='Yuri display and scrolling changes are saved and apply on your next launch.';return}if(gameReady)postGame({type:'zh-display',...currentResolution(),resize,scaling:preferences.scaling,edgeScroll:preferences.edgeScroll,performance:preferences.performance})}
 function syncPreferences(save=true){
   document.documentElement.dataset.theme=preferences.dark?'dark':'light';$('themeToggle').textContent=`Dark mode: ${preferences.dark?'on':'off'}`;$('themeToggle').setAttribute('aria-pressed',String(preferences.dark));
   for(const [id,key] of [['darkMode','dark'],['autoHide','autoHide'],['edgeScroll','edgeScroll'],['showPerformance','performance']])$(id).checked=preferences[key];
@@ -175,7 +176,8 @@ function syncPreferences(save=true){
   $('musicValue').value=`${preferences.music}%`;$('soundValue').value=`${preferences.effects}%`;$('performanceInfo').hidden=!preferences.performance;
   if(save)$('settingsStatus').textContent=savePreferences(preferences,profile.id)?'Changes saved on this device.':'Settings work for this session. Browser storage could not save them.';
 }
-function openSettings(){clearTimeout(hideTimer);if(!$('gameView').hidden)$('gameView').append($('settings'));else document.body.append($('settings'));$('settings').showModal();updateStorage();postGame({type:'zh-input-neutral'})}
+function openSettings(){clearTimeout(hideTimer);if(!$('gameView').hidden)$('gameView').append($('settings'));else document.body.append($('settings'));$('yuriTools').hidden=!isYuri;for(const id of ['yuriDownloadSave','yuriUploadSave','yuriAddMaps','yuriPerformance'])$(id).disabled=!gameReady;$('settings').showModal();updateStorage();postGame({type:'zh-input-neutral'})}
+for(const [id,action] of [['yuriDownloadSave','downloadSave'],['yuriUploadSave','uploadSave'],['yuriAddMaps','maps'],['yuriPerformance','performance']])$(id).onclick=()=>{if(!isYuri||!gameReady)return;$('settings').close();postGame({type:'zh-yuri-tool',action})};
 $('openSettings').onclick=$('gameSettings').onclick=openSettings;
 $('closeSettings').onclick=()=>$('settings').close();$('settings').addEventListener('close',()=>{postGame({type:'zh-focus'});scheduleHide()});
 $('themeToggle').onclick=()=>{preferences.dark=!preferences.dark;syncPreferences()};
@@ -183,7 +185,7 @@ for(const [id,key] of [['darkMode','dark'],['autoHide','autoHide'],['edgeScroll'
 $('music').oninput=()=>{preferences.music=Number($('music').value);syncPreferences();sendAudio()};
 $('resolution').onchange=()=>{preferences.resolution=$('resolution').value;syncPreferences();sendDisplay()};
 $('scaling').onchange=()=>{preferences.scaling=$('scaling').value;syncPreferences();sendDisplay(false)};
-$('resetSettings').onclick=()=>{preferences={...DEFAULTS};syncPreferences();sendAudio();sendDisplay();scheduleHide()};
+$('resetSettings').onclick=()=>{preferences=gameDefaults(profile.id);syncPreferences();sendAudio();sendDisplay();scheduleHide()};
 function setToolbar(visible){clearTimeout(hideTimer);$('gameView').classList.toggle('toolbar-hidden',!visible);$('revealToolbar').hidden=visible;$('revealToolbar').setAttribute('aria-expanded',String(visible));postGame({type:'zh-input-neutral'});scheduleNativeResize()}
 function scheduleHide(){clearTimeout(hideTimer);if(exiting||roomState&&!inMatch)return;if(gameReady&&preferences.autoHide&&!$('settings').open&&!$('gameBar').contains(document.activeElement))hideTimer=setTimeout(()=>{if(!exiting&&!$('settings').open&&!$('confirmAction').open&&!$('help').open&&!$('gameBar').contains(document.activeElement))setToolbar(false)},2500)}
 $('hideToolbar').onclick=()=>{setToolbar(false);postGame({type:'zh-focus'})};$('revealToolbar').onclick=()=>{setToolbar(true);scheduleHide()};
@@ -267,7 +269,7 @@ window.addEventListener('message',e=>{
   if(d.type==='zh-shortcut')shortcut(d.action);
   if(d.type==='zh-gameplay'&&!exiting){const was=inMatch;inMatch=d.inGame;if(!was&&d.inGame&&preferences.autoHide&&!$('settings').open&&!$('confirmAction').open)setToolbar(false)}
   if(d.type==='zh-game-focus'&&!exiting&&preferences.autoHide&&gameReady&&(!roomState||inMatch)&&!$('settings').open&&!$('gameView').classList.contains('toolbar-hidden'))setToolbar(false);
-  if(d.type==='zh-performance')$('performanceInfo').textContent=`${d.renderer||'Renderer'} · ${d.width} × ${d.height}${Number.isFinite(d.logicFrame)?` · frame ${d.logicFrame}`:''}`;
-  if(d.type==='zh-display-result'){if(!d.ok&&d.width&&d.height){preferences.resolution=`${d.width}x${d.height}`;if(!['1024x768','1280x720','1600x900','1920x1080'].includes(preferences.resolution))preferences.resolution=DEFAULTS.resolution;syncPreferences()}$('settingsStatus').textContent=d.ok?`Rendering at ${d.width} × ${d.height}.`:`Resolution was not applied: ${d.error}`}
+  if(d.type==='zh-performance')$('performanceInfo').textContent=d.text||`${d.renderer||'Renderer'} · ${d.width} × ${d.height}${Number.isFinite(d.logicFrame)?` · frame ${d.logicFrame}`:''}`;
+  if(d.type==='zh-display-result'){if(!d.ok&&d.width&&d.height){preferences.resolution=`${d.width}x${d.height}`;if(!['800x600','1024x768','1280x720','1600x900','1920x1080'].includes(preferences.resolution))preferences.resolution=DEFAULTS.resolution;syncPreferences()}$('settingsStatus').textContent=d.ok?`Rendering at ${d.width} × ${d.height}.`:`Resolution was not applied: ${d.error}`}
   if(d.type==='zh-error')setToolbar(true);
 });

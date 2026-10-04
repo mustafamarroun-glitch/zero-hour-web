@@ -1,0 +1,45 @@
+// Presentation-only integration loaded before the unmodified native runtime.
+(()=>{
+ const query=new URLSearchParams(location.search),mobile=query.get('display-ratio')==='1';
+ const realRatio=window.devicePixelRatio||1;
+ // Scope the presentation ratio to this iframe. Guest frames, input coordinates,
+ // VM timing and the containing website retain their original semantics.
+ if(mobile&&realRatio>1){try{Object.defineProperty(window,'devicePixelRatio',{configurable:true,get:()=>1})}catch{}}
+ document.documentElement.dataset.presentationRatio=String(window.devicePixelRatio);
+ try{if(localStorage.getItem('zhweb-yuri-touch-controls-hidden')===null)localStorage.setItem('zhweb-yuri-touch-controls-hidden','1')}catch{}
+ // Native chunks load additional CSS lazily; keep our presentation rules last.
+ const style=document.getElementById('yuri-player-style');
+ const styles=new MutationObserver(()=>{
+  const links=document.head.querySelectorAll('link[rel="stylesheet"]');
+  if(style&&links[links.length-1]!==style)document.head.append(style);
+ });
+ styles.observe(document.head,{childList:true});
+ const send=data=>parent.postMessage(data,location.origin);
+ let performanceText='',phase='',timer;
+ function report(){
+  const canvas=document.getElementById('screen');if(!canvas)return;
+  const root=document.querySelector('#root > div'),nextPhase=root?.classList.contains('game-running')?'running':root?.classList.contains('game-home')?'loading':'waiting';
+  const fps=document.getElementById('vm-fps')?.textContent||'';
+  const status=document.querySelector('#ui .panel')?.textContent?.trim()||'';
+  if(nextPhase!==phase||fps!==performanceText){phase=nextPhase;performanceText=fps;send({type:'yuri-player-state',phase,fps,status,presentationRatio:window.devicePixelRatio,physicalRatio:realRatio,buffer:[canvas.width,canvas.height],shellPage:canvas.dataset.shellPage||''})}
+ }
+ // Prevent an accidental backtick from enabling expensive tracing during play.
+ // Other native keys, pointer input and adaptive touch controls remain intact.
+ document.addEventListener('keydown',event=>{
+  if(event.key==='`'||event.code==='Backquote'){event.preventDefault();event.stopImmediatePropagation()}
+ },true);
+ window.addEventListener('message',event=>{
+  if(event.origin!==location.origin||event.source!==parent)return;
+  const action=event.data?.type==='yuri-player-tool'&&event.data.action;
+ const ids={downloadSave:'vm-save-download',uploadSave:'vm-save-upload',maps:'vm-custom-maps',performance:'vm-performance-diagnostics'};
+  const button=ids[action]&&document.getElementById(ids[action]);
+  if(action){
+   if(!button||button.disabled){send({type:'yuri-player-tool-error',message:'Wait for Yuri to finish loading, then try again.'});return;}
+   button.click();
+  }
+ });
+ window.addEventListener('error',event=>send({type:'yuri-player-error',message:event.message||'Yuri could not start.'}));
+ window.addEventListener('unhandledrejection',event=>send({type:'yuri-player-error',message:event.reason?.message||String(event.reason)}));
+ document.addEventListener('DOMContentLoaded',()=>{report();timer=setInterval(report,1000)},{once:true});
+ window.addEventListener('pagehide',()=>{clearInterval(timer);styles.disconnect()});
+})();

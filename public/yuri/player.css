@@ -1,0 +1,25 @@
+/* Website controls own the chrome. The original game and touch input stay native. */
+:root{font-family:Segoe UI,Arial,sans-serif;color-scheme:dark;--ink:#e9eddf;--ink-dim:#bfcaad;--panel-bg:#171c14;--alert:#69785a;--accent:#69785a;--ra2-yellow:#e9eddf}
+html,body{margin:0;overflow:hidden;background:#10120f}
+#vm-controls,#vm-debug{display:none!important}
+#stage{background:#10120f}
+#app-layout{inset:0}
+#screen-frame.pointer-locked{outline:none}
+.lock-corner{display:none!important}
+/* Native save/map dialogs stay reachable from website Settings. */
+.panel,.message-box,dialog,dialog.custom-map-dialog{color:#e9eddf;background:#171c14;border:1px solid #626f53;border-radius:8px;box-shadow:0 12px 48px #0008;text-shadow:none;font-family:Segoe UI,Arial,sans-serif}
+.panel h2,.panel h3,.message-box h2,.message-box h3{color:#e9eddf;text-shadow:none;letter-spacing:normal}
+.panel button,.panel .toolbar-button,.panel .dialog-button,.message-box .dialog-button,dialog button,dialog.custom-map-dialog button,#vm-touch-controls .touch-key{font:600 14px Segoe UI,Arial,sans-serif;color:#e9eddf;background:#252c20;border:1px solid #69785a;border-radius:3px;box-shadow:none;text-shadow:none;min-height:44px;padding:10px 14px}
+.panel button:hover,.message-box .dialog-button:hover,.touch-key:hover{background:#35402b;color:#e9eddf}
+.panel button:disabled,.message-box button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #bfcaad;outline-offset:3px}
+#vm-touch-controls{position:fixed;top:auto;bottom:max(6px,env(safe-area-inset-bottom,0px));left:0;right:0;display:flex;flex-direction:row;align-items:center;justify-content:center;overflow-x:auto;background:#171c14;border-top:1px solid #626f53;box-shadow:none;padding:6px;gap:6px;max-height:60px}
+#vm-touch-controls .touch-key{border-radius:3px}
+#vm-touch-controls .touch-dpad{display:flex;gap:6px}
+#vm-touch-controls .touch-dpad .touch-key{font-size:0;padding:10px;flex-shrink:0}
+#vm-touch-controls.collapsed .touch-dpad{display:none}
+#vm-touch-controls .touch-key:hover,#vm-touch-controls .touch-key:active{color:#e9eddf;background:#35402b;box-shadow:none;transform:none}
+#vm-touch-controls.collapsed{left:auto;right:12px;width:auto;transform:none;background:transparent;border:0}
+#vm-touch-joystick{background:#252c20b3;border:1px solid #69785a;box-shadow:none}
+::selection{background:#4c592f;color:#fff}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}

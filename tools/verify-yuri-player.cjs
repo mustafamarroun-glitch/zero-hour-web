@@ -1,0 +1,36 @@
+// Actual native runtime and player-owned files. Touch viewport is not Android hardware.
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs/promises');
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
+const site=process.env.YURI_SITE_URL||'http://localhost:8093/';
+runBrowserTest(async()=>{
+ const report={site,checks:[],errors:[],missing:[],scope:'Native menu and player controls in Windows Chrome at desktop/phone viewports; Android speed and full matches unverified'};
+ const ctx=await launchTestContext(chromium,'yuri-player',{channel:'chrome',headless:true,viewport:{width:896,height:414},deviceScaleFactor:3,isMobile:true,hasTouch:true,args:['--enable-unsafe-swiftshader']});
+ const page=ctx.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()>=400)report.missing.push(r.status()+' '+r.url())});
+ try{
+  await fs.mkdir('output/playwright',{recursive:true});
+  await page.goto(new URL('yuri/',site).href);await page.locator('#nameForm button').waitFor({state:'visible'});await page.locator('#name').fill('TouchTest');await page.locator('#nameForm button').click();
+  const defaults=await page.evaluate(async()=>{const p=await import('../preferences.mjs');const mobile=p.loadPreferences('yuri'),zero=p.loadPreferences('zero-hour');p.savePreferences({...mobile,resolution:'1600x900'},'yuri');const restored=p.loadPreferences('yuri');p.savePreferences(mobile,'yuri');return {mobile,zero,restored}});
+  assert.equal(defaults.mobile.resolution,'800x600');assert.equal(defaults.zero.resolution,'1280x720');assert.equal(defaults.restored.resolution,'1600x900');report.checks.push('Touch Yuri defaults to 800x600; saved choices and Zero Hour defaults preserved');
+  await page.locator('#folderInput').setInputFiles(process.env.YURI_GAME_DIR||'.local/personal-game-files/Yuri-Revenge-Web-no-movies');await page.locator('#lobby').waitFor({timeout:180000});
+  await page.locator('#solo').click();const native=page.frameLocator('#gameFrame').frameLocator('#runtime');
+  await native.locator('#screen').waitFor({timeout:120000});await native.locator('#screen').evaluate(canvas=>new Promise((resolve,reject)=>{const end=Date.now()+120000;const timer=setInterval(()=>{if(/mainmenu/i.test(canvas.dataset.shellPage||'')){clearInterval(timer);resolve()}else if(Date.now()>end){clearInterval(timer);reject(Error('Native main menu did not render'))}},250)}));
+  const state=await native.locator('#screen').evaluate(canvas=>({url:location.href,ratio:devicePixelRatio,buffer:[canvas.width,canvas.height],css:[canvas.clientWidth,canvas.clientHeight],tracing:canvas.dataset.vmBatch,sidebar:getComputedStyle(document.getElementById('vm-controls')).display,debug:getComputedStyle(document.getElementById('vm-debug')).display}));
+  assert.equal(new URL(state.url).searchParams.has('debug'),false);assert.equal(state.ratio,1);assert.equal(state.tracing,undefined);assert.equal(state.sidebar,'none');assert.equal(state.debug,'none');assert.ok(state.buffer[0]<=800&&state.buffer[1]<=600);report.presentation=state;report.checks.push('Original native menu boots with no debug tracing or duplicate sidebar and a bounded phone buffer');
+  // A native touch event reveals original key controls; integration does not replace input.
+  await native.locator('#screen').dispatchEvent('pointerdown',{pointerId:1,pointerType:'touch',clientX:20,clientY:20,button:0});await native.locator('#screen').dispatchEvent('pointerup',{pointerId:1,pointerType:'touch',clientX:20,clientY:20,button:0});await native.locator('#vm-touch-controls').waitFor({state:'visible'});
+  assert.equal(await native.locator('#vm-touch-controls').evaluate(e=>e.classList.contains('collapsed')),true);
+  report.touchLayout=await native.locator('#vm-touch-controls').evaluate(e=>({rect:e.getBoundingClientRect().toJSON(),viewport:[innerWidth,innerHeight],bottom:getComputedStyle(e).bottom,top:getComputedStyle(e).top}));console.log('Touch layout',JSON.stringify(report.touchLayout));
+  await native.locator('.touch-collapse').click();assert.ok(await native.locator('#vm-touch-controls').evaluate(e=>e.getBoundingClientRect().height)<=60);await native.locator('.touch-collapse').click();report.checks.push('Native touch controls start collapsed and expand into a bounded single row');
+  const menu=async()=>{if(await page.locator('#revealToolbar').isVisible())await page.locator('#revealToolbar').click()};
+  const capture=async name=>{assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:'output/playwright/yuri-player-'+name+'.png'})};
+  await menu();await capture('landscape');await page.setViewportSize({width:390,height:844});await capture('portrait');await page.locator('#gameSettings').click();await page.locator('#yuriTools').scrollIntoViewIfNeeded();await capture('phone-settings');assert.equal(await page.locator('#yuriAddMaps').isEnabled(),true);
+  const chooser=page.waitForEvent('filechooser');await page.locator('#yuriUploadSave').click();const fileChooser=await chooser;assert.equal(await fileChooser.element().getAttribute('id'),'vm-save-file');report.checks.push('Website Import saves opens the native save file picker');
+  await menu();await page.locator('#gameSettings').click();await page.locator('#yuriAddMaps').click();await native.getByRole('dialog').waitFor({state:'visible'});await capture('map-dialog');await native.getByRole('dialog').getByRole('button',{name:/close|cancel/i}).first().click();report.checks.push('Website Add maps opens the original map dialog');
+  await menu();await page.locator('#gameSettings').click();await page.locator('#showPerformance').check();await page.locator('#closeSettings').click();await page.locator('#performanceInfo').filter({hasText:/WebGL2/}).waitFor({state:'attached'});await menu();assert.equal(await page.locator('#performanceInfo').isVisible(),true);report.checks.push('Opt-in performance information works without opening tracing');
+  await page.setViewportSize({width:1440,height:900});await menu();await capture('desktop');
+  await page.locator('#exitGame').click();await page.locator('#confirmCancel').click();assert.equal(await page.locator('#gameView').isVisible(),true);await page.locator('#exitGame').click();await page.locator('#confirmProceed').click();await page.reload();await page.locator('#lobby').waitFor();report.checks.push('Cancel exit keeps the game; confirmed exit/reload preserves the local installation');
+  await page.goto(site);await page.locator('#setup').waitFor();await page.locator('#openSettings').click();assert.equal(await page.locator('#yuriTools').isVisible(),false);report.checks.push('Zero Hour keeps its own settings surface');
+  assert.deepEqual(report.errors,[]);assert.deepEqual(report.missing,[]);report.status='passed';
+ }catch(error){report.status='failed';report.failure=error.stack;await page.screenshot({path:'output/playwright/yuri-player-failure.png'}).catch(()=>{});process.exitCode=1}
+ finally{await ctx.close();await fs.writeFile('.local/yuri-player-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2))}
+});

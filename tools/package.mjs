@@ -3,7 +3,9 @@ import {resolve,relative,dirname} from 'node:path';
 import {createHash} from 'node:crypto';
 import {buildFileZip} from '../public/harness/launcher-backup-zip.mjs';
 import {syncLaunchers} from './sync-launchers.mjs';
+import {syncYuriPlayer} from './sync-yuri-player.mjs';
 await syncLaunchers();
+await syncYuriPlayer();
 const sourceEntries=[];
 async function sources(dir){for(const e of await readdir(dir,{withFileTypes:true})){const file=resolve(dir,e.name);const name=relative(resolve('.'),file).replaceAll('\\','/');if(e.isDirectory()){if(!name.startsWith('public/dist-')&&!name.startsWith('public/source'))await sources(file)}else if(/\.(?:m?js|cjs|html|css|md|json|txt|woff2|ya?ml|py)$/.test(name)||name==='public/_headers')sourceEntries.push({name,file:new Blob([await readFile(file)])});}}
 for(const directory of ['tools','public','docs','build','.github'])await sources(directory);

@@ -12,7 +12,17 @@ Settings use the shared controls and separate `zhweb-yuri-settings-v1` preferenc
 
 Both **Get ZIP** and **Get RAR** open the user-supplied [Google Drive location](https://drive.google.com/file/d/1b7RaB8d0K1ydWofD5BEf7MXpkmaytnUX/view?usp=sharing). Access and remote archive contents could not be verified. The site does not fetch the retail files automatically. Acceptance used the actual local movie-free RAR and a nested DEFLATE ZIP made from the same installation: 166 files, music and 53 map files retained, with a required 10-byte empty movie MIX placeholder.
 
-Save inside the game before Exit to website. Cancel retains the VM; confirm unloads it and restores focus to the launcher. Hidden masthead/footer controls are inert during gameplay. Native toolbar controls provide display/audio settings, save transfer and diagnostics. The website fullscreen control affects the complete game stage.
+Save inside the game before Exit to website. Cancel retains the VM; confirm unloads it and restores focus to the launcher. Hidden masthead/footer controls are inert during gameplay. The shared website toolbar provides fullscreen, settings, diagnostics and exit. In Settings, Saves & maps provides native save export/import, custom maps and an opt-in performance recording. The duplicate engine sidebar and debug panel are hidden. Original game menus and native input remain intact.
+
+## Clean player and phone defaults (2.1.1)
+
+`tools/sync-yuri-player.mjs` generates the project-owned `public/yuri/runtime.html` from the pinned runtime entry point. It loads the original code/CSS through a base URL, with `runtime-bridge.js` and `player.css` providing presentation integration. No inventoried engine/source bytes change. The normal player no longer supplies `debug=1`; native call tracing, debug sampling and pointer probes therefore remain disabled. Accidental backtick presses do not enable them. Website diagnostics report the ordinary runtime status and display counters without tracing.
+
+New/reset Yuri settings on coarse-pointer devices use 800 × 600 and Compatibility. Explicit saved resolutions and renderer choices are preserved; Zero Hour's defaults stay unchanged. Phone runtime frames use a presentation pixel ratio of one to avoid high-DPI supersampling. This affects the display buffer only; guest resolution, native input mapping, VM clock and simulation remain unchanged. Higher resolutions remain available in shared Settings. Touch keys start collapsed on a new device, expand into one compact row, and preserve their subsequent saved preference. The native joystick remains available.
+
+Real native-menu measurements in Windows Chrome at an 896 × 414 touch viewport with physical DPR 3 reduced the backing buffer from 1600 × 1200 to 552 × 414 (88.1% fewer pixels). Debug attribute updates went from 1,534 to zero over four seconds. These measure removed work, not an Android FPS improvement: desktop menu display rates were similar, and no physical Motorola test or match-speed comparison was performed. Private reports: `.local/yuri-player-before.json`, `.local/yuri-player-after.json`.
+
+`node tools/verify-yuri-player.cjs` checks actual player-owned imports and original menu boot, saved/default resolution isolation, bounded phone buffers, collapsed/expanded touch controls, native save picker and map dialog access through Settings, opt-in performance information, cancel/confirm exit and installation reload. It captures desktop, phone portrait and landscape screens; `.local/yuri-player-verification.json` records the results. `YURI_SITE_URL` can target the published origin. Touch viewport evidence does not establish Android gameplay performance.
 
 ## Multiplayer and deployment
 

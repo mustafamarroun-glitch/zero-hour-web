@@ -43,7 +43,7 @@
     <label class="setting-row">Show performance information <input id="showPerformance" type="checkbox"></label>
   </fieldset>
   <fieldset><legend>Display</legend>
-    <label class="setting-row" for="resolution">Render resolution <select id="resolution"><option value="1024x768">1024 × 768 · 4:3</option><option value="1280x720">1280 × 720</option><option value="1600x900">1600 × 900</option><option value="1920x1080">1920 × 1080</option><option value="native">Fit window · up to 1080p</option></select></label>
+    <label class="setting-row" for="resolution">Render resolution <select id="resolution"><option value="800x600">800 × 600 · lower load</option><option value="1024x768">1024 × 768 · 4:3</option><option value="1280x720">1280 × 720</option><option value="1600x900">1600 × 900</option><option value="1920x1080">1920 × 1080</option><option value="native">Fit window · up to 1080p</option></select></label>
     <label class="setting-row" for="scaling">Display size <select id="scaling"><option value="fit">Fit · preserve aspect ratio</option><option value="actual">Actual size · fit if too large</option></select></label>
     <label class="setting-row" for="graphics">Graphics renderer <select id="graphics"><option value="ff">Compatibility</option><option value="ps11">Shader effects</option></select></label>
     <p class="muted">Resolution applies to the engine. Renderer changes apply on your next launch. Graphics detail is available in the game’s Options.</p>
@@ -51,6 +51,11 @@
   <fieldset><legend>Audio</legend><label class="setting-row" for="music">Music <span><output id="musicValue">75%</output><input id="music" type="range" min="0" max="100" value="75"></span></label><label class="setting-row" for="sound">Effects &amp; speech <span><output id="soundValue">75%</output><input id="sound" type="range" min="0" max="100" value="75"></span></label></fieldset>
   <fieldset><legend>Browser storage &amp; recovery</legend><p id="settingsStorageInfo" class="muted" role="status"></p><div class="actions"><button id="settingsVerifyLibrary">Retry installed-file check</button><button id="settingsReplaceLibrary">Import replacement</button><button id="settingsRemoveLibrary">Remove installed game</button><button id="settingsCleanStorage">Clean leftover game files</button></div><p id="settingsStorageStatus" role="status"></p><p class="muted">Cleanup keeps your installed game, commander, settings and stored saves. Removal clears the installed game files only. Exit the game and close other game tabs before managing files.</p></fieldset>
   <fieldset><legend>Version &amp; updates</legend><p id="appVersion"></p><div class="actions"><button id="checkUpdates">Check for updates</button><button id="applyUpdate" hidden>Apply update</button></div><p id="updateStatus" role="status"></p></fieldset>
+  <fieldset id="yuriTools" hidden><legend>Saves &amp; maps</legend>
+    <p class="muted">Available while Yuri is running. Save your match inside the game before exporting.</p>
+    <div class="actions"><button id="yuriDownloadSave">Export saves</button><button id="yuriUploadSave">Import saves</button><button id="yuriAddMaps">Add maps</button><button id="yuriPerformance">Record performance</button></div>
+    <p class="muted">On phones, 800 × 600 with Compatibility reduces rendering work. Display changes apply on your next launch.</p>
+  </fieldset>
   <p id="settingsStatus" role="status">Changes are saved on this device.</p><div class="actions"><button id="resetSettings">Restore defaults</button><button id="settingsDiagnostics">Download diagnostics</button><button id="copyDiagnostics">Copy diagnostics</button><button id="settingsHelp">Controls</button></div>
 </dialog>
 <dialog id="confirmAction" aria-labelledby="confirmTitle"><h2 id="confirmTitle"></h2><p id="confirmDescription"></p><div class="actions"><button id="confirmCancel" autofocus>Cancel</button><button id="confirmProceed" class="primary">Continue</button></div></dialog>
