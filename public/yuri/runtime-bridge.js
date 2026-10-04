@@ -1,10 +1,10 @@
 // Presentation-only integration loaded before the unmodified native runtime.
 (()=>{
- const query=new URLSearchParams(location.search),mobile=query.get('display-ratio')==='1';
+ const query=new URLSearchParams(location.search),limitRatio=query.get('display-ratio')==='1';
  const realRatio=window.devicePixelRatio||1;
  // Scope the presentation ratio to this iframe. Guest frames, input coordinates,
  // VM timing and the containing website retain their original semantics.
- if(mobile&&realRatio>1){try{Object.defineProperty(window,'devicePixelRatio',{configurable:true,get:()=>1})}catch{}}
+ if(limitRatio&&realRatio>1){try{Object.defineProperty(window,'devicePixelRatio',{configurable:true,get:()=>1})}catch{}}
  document.documentElement.dataset.presentationRatio=String(window.devicePixelRatio);
  try{if(localStorage.getItem('zhweb-yuri-touch-controls-hidden')===null)localStorage.setItem('zhweb-yuri-touch-controls-hidden','1')}catch{}
  // Native chunks load additional CSS lazily; keep our presentation rules last.
@@ -15,13 +15,17 @@
  });
  styles.observe(document.head,{childList:true});
  const send=data=>parent.postMessage(data,location.origin);
- let performanceText='',phase='',timer;
- function report(){
+ let lastState='',timer;
+ function snapshot(){
   const canvas=document.getElementById('screen');if(!canvas)return;
   const root=document.querySelector('#root > div'),nextPhase=root?.classList.contains('game-running')?'running':root?.classList.contains('game-home')?'loading':'waiting';
-  const fps=document.getElementById('vm-fps')?.textContent||'';
+  const output=document.getElementById('vm-fps'),fps=output?.textContent||'',renderer=output?.title||'';
   const status=document.querySelector('#ui .panel')?.textContent?.trim()||'';
-  if(nextPhase!==phase||fps!==performanceText){phase=nextPhase;performanceText=fps;send({type:'yuri-player-state',phase,fps,status,presentationRatio:window.devicePixelRatio,physicalRatio:realRatio,buffer:[canvas.width,canvas.height],shellPage:canvas.dataset.shellPage||''})}
+  return {phase:nextPhase,fps,status,renderer,softwareRenderer:/llvmpipe|swiftshader|software|mesa offscreen/i.test(renderer),presentationRatio:window.devicePixelRatio,physicalRatio:realRatio,buffer:[canvas.width,canvas.height],display:[canvas.clientWidth,canvas.clientHeight],viewport:[innerWidth,innerHeight],shellPage:canvas.dataset.shellPage||'',upscale:document.getElementById('vm-upscale-mode')?.value||'off',effects:document.getElementById('vm-reshade-mode')?.value||'off'};
+ }
+ function report(){
+  const state=snapshot();if(!state)return;
+  const signature=JSON.stringify(state);if(signature!==lastState){lastState=signature;send({type:'yuri-player-state',...state})}
  }
  // Prevent an accidental backtick from enabling expensive tracing during play.
  // Other native keys, pointer input and adaptive touch controls remain intact.
@@ -30,6 +34,7 @@
  },true);
  window.addEventListener('message',event=>{
   if(event.origin!==location.origin||event.source!==parent)return;
+  if(event.data?.type==='yuri-player-diagnostics'){send({type:'yuri-player-diagnostics',state:{...snapshot(),hardwareConcurrency:navigator.hardwareConcurrency??null,deviceMemory:navigator.deviceMemory??null,isolation:crossOriginIsolated,visibility:document.visibilityState}});return;}
   const action=event.data?.type==='yuri-player-tool'&&event.data.action;
  const ids={downloadSave:'vm-save-download',uploadSave:'vm-save-upload',maps:'vm-custom-maps',performance:'vm-performance-diagnostics'};
   const button=ids[action]&&document.getElementById(ids[action]);

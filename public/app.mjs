@@ -188,6 +188,7 @@ $('music').oninput=()=>{preferences.music=Number($('music').value);syncPreferenc
 $('resolution').onchange=()=>{preferences.resolution=$('resolution').value;syncPreferences();sendDisplay()};
 $('scaling').onchange=()=>{preferences.scaling=$('scaling').value;syncPreferences();sendDisplay(false)};
 $('resetSettings').onclick=()=>{preferences=gameDefaults(profile.id);syncPreferences();sendAudio();sendDisplay();scheduleHide()};
+$('yuriLighterSettings').onclick=()=>{if(!isYuri)return;preferences={...preferences,resolution:'800x600',scaling:'actual',graphics:'ff'};syncPreferences();$('settingsStatus').textContent='Lighter settings saved. Exit to the website and launch again to apply them.'};
 function setToolbar(visible){clearTimeout(hideTimer);$('gameView').classList.toggle('toolbar-hidden',!visible);$('revealToolbar').hidden=visible;$('revealToolbar').setAttribute('aria-expanded',String(visible));postGame({type:'zh-input-neutral'});scheduleNativeResize()}
 function scheduleHide(){clearTimeout(hideTimer);if(exiting||roomState&&!inMatch)return;if(gameReady&&preferences.autoHide&&!$('settings').open&&!$('gameBar').contains(document.activeElement))hideTimer=setTimeout(()=>{if(!exiting&&!$('settings').open&&!$('confirmAction').open&&!$('help').open&&!$('gameBar').contains(document.activeElement))setToolbar(false)},2500)}
 $('hideToolbar').onclick=()=>{setToolbar(false);postGame({type:'zh-focus'})};$('revealToolbar').onclick=()=>{setToolbar(true);scheduleHide()};

@@ -1,14 +1,13 @@
 import './harness/storage-scope.js';
-export const VERSION='2.1.2';
+export const VERSION='2.1.3';
 export const DEFAULTS=Object.freeze({dark:true,autoHide:true,resolution:'1280x720',scaling:'fit',edgeScroll:true,music:75,effects:75,performance:false,graphics:'ff'});
 export function gameDefaults(game='zero-hour'){
-  const touch=typeof matchMedia==='function'&&matchMedia('(pointer: coarse)').matches;
-  return {...DEFAULTS,...(game==='yuri'&&touch?{resolution:'800x600'}:{})};
+  return {...DEFAULTS,...(game==='yuri'?{resolution:'800x600'}:{})};
 }
 export function loadPreferences(game='zero-hour'){
   let saved={};try{saved=JSON.parse(localStorage.getItem(game==='yuri'?'zhweb-yuri-settings-v1':'zhweb-settings-v2')||'{}')||{}}catch{}
   const defaults=gameDefaults(game),values={...defaults,...saved};
-  try{if(!('graphics' in saved))values.graphics=localStorage.getItem('zhweb-graphics')||DEFAULTS.graphics;const volume=localStorage.getItem('zhweb-volume');if(volume!==null){if(!('music' in saved))values.music=volume;if(!('effects' in saved))values.effects=volume}}catch{}
+  try{if(game==='zero-hour'&&!('graphics' in saved))values.graphics=localStorage.getItem('zhweb-graphics')||DEFAULTS.graphics;const volume=localStorage.getItem('zhweb-volume');if(volume!==null){if(!('music' in saved))values.music=volume;if(!('effects' in saved))values.effects=volume}}catch{}
   for(const k of ['dark','autoHide','edgeScroll','performance'])if(typeof values[k]!=='boolean')values[k]=DEFAULTS[k];
   for(const k of ['music','effects'])values[k]=Number.isFinite(Number(values[k]))?Math.max(0,Math.min(100,Number(values[k]))):75;
   if(!['800x600','1024x768','1280x720','1600x900','1920x1080','native'].includes(values.resolution))values.resolution=defaults.resolution;

@@ -6,8 +6,8 @@ const available=[[800,600],[1024,768],[1280,720],[1280,800],[1440,900],[1600,900
 const requested=[Number(query.get('width'))||1280,Number(query.get('height'))||720];
 const size=available.reduce((best,value)=>Math.abs(value[0]-requested[0])+Math.abs(value[1]-requested[1])<Math.abs(best[0]-requested[0])+Math.abs(best[1]-requested[1])?value:best,available[0]);
 try{localStorage.setItem('zhweb-yuri-preferred-game','yr');localStorage.setItem('zhweb-yuri-resolution-yr',size.join('x'));localStorage.setItem('zhweb-yuri-master-volume','100')}catch{}
-const mobile=matchMedia('(pointer: coarse)').matches;
-const url=new URL('./runtime.html',location.href);if(mobile)url.searchParams.set('display-ratio','1');
+// Retina desktops need the same presentation cap as phones.
+const url=new URL('./runtime.html',location.href);url.searchParams.set('display-ratio','1');
 const session=query.get('session');if(/^[a-f0-9]{24}$/.test(session||'')){
  try{
   const response=await fetch(new URL('../network-config.json',import.meta.url));if(!response.ok)throw Error('Yuri multiplayer configuration is unavailable.');
@@ -36,7 +36,7 @@ window.addEventListener('message',event=>{
  if(event.origin!==location.origin||event.source!==parent)return;
  if(event.data?.type==='zh-focus')frame.focus();
  if(event.data?.type==='zh-input-neutral')frame.contentDocument?.exitPointerLock?.();
- if(event.data?.type==='zh-diagnostics')send({type:'zh-diagnostics',runtime:'ra2-vm-a10ac989',state:playerState});
+ if(event.data?.type==='zh-diagnostics')frame.contentWindow.postMessage({type:'yuri-player-diagnostics'},location.origin);
  if(event.data?.type==='zh-yuri-tool')frame.contentWindow.postMessage({type:'yuri-player-tool',action:event.data.action},location.origin);
  if(event.data?.type==='zh-display')preferences.performance=!!event.data.performance;
 });
@@ -48,5 +48,6 @@ window.addEventListener('message',event=>{
   if(data.phase==='waiting'&&data.status&&lastStatus!==data.status){lastStatus=data.status;send({type:'zh-error',message:data.status})}
  }
  if(data?.type==='yuri-player-error'||data?.type==='yuri-player-tool-error')send({type:'zh-error',message:data.message});
+ if(data?.type==='yuri-player-diagnostics')send({type:'zh-diagnostics',runtime:'ra2-vm-a10ac989',state:data.state});
 });
 window.addEventListener('pagehide',()=>clearInterval(timer));
