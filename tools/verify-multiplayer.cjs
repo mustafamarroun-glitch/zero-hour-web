@@ -10,7 +10,7 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   timer=setInterval(()=>console.log('MULTIPLAYER',report.stage),20000);
   for(const [profile,name]of [['acceptance-browser','FieldTest'],['guest-browser','FieldGuest']]){
    report.stage=`Preparing ${name}`;
-   const context=await chromium.launchPersistentContext(path.resolve('.local/'+profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]});contexts.push(context);const page=context.pages()[0]||await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log(name,m.text().slice(0,180))});await page.goto('http://localhost:8093/');await page.waitForTimeout(1000);
+   const context=await chromium.launchPersistentContext(path.resolve('.local/'+profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]});contexts.push(context);const page=context.pages()[0]||await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log(name,m.text().slice(0,180))});await page.goto(process.env.ZH_SITE_URL||'http://localhost:8093/');await page.waitForTimeout(1000);
    if(await page.locator('#entry').isVisible()){await page.locator('#name').fill(name);await page.locator('#nameForm button').click();}
    if(await page.locator('#setup').isVisible()){await page.locator('#folderInput').setInputFiles('C:\\Program Files (x86)\\DODI-Repacks\\Generals Zero Hour\\Data');await page.locator('#lobby').waitFor({state:'visible',timeout:240000});}
    clients.push({page,name});
@@ -39,7 +39,8 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   report.stage='Starting synchronized match';await host.page.locator('#gameStart').click();
   await wait('Both actual Network instances',()=>Promise.all(clients.map(state)),s=>s.every(s=>s.network?.ready),45000);
   await wait('Active synchronized gameplay',()=>Promise.all(clients.map(c=>rpc(c,'agentWorldSnapshot'))),s=>s.every(s=>s.result?.game?.mode==='lan'&&s.result?.game?.playable&&s.result?.objects?.length>1),240000);
-  report.checks.push('Two original LAN engine instances start a real playable match over WebRTC');
+  report.checks.push('Two original LAN engine instances loaded real match terrain over WebRTC; sustained simulation checked separately');
+  report.startNetworks=await Promise.all(clients.map(state));
   report.graphics=await Promise.all(clients.map(c=>rpc(c,'threadedStatus')));
   report.stage='Replicated unit movement';
   const draws=(await rpc(host,'queryDrawables')).drawables;const worker=draws.drawables.find(o=>o.localOwned&&o.kindOf?.dozer);
@@ -55,7 +56,7 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   report.checks.push('30-second two-profile network observation without engine CRC mismatch');
   for(const [i,c]of clients.entries()){const shot=await rpc(c,'screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile(`output/playwright/multiplayer-${i?'guest':'host'}.png`,Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));}
   report.status='passed preliminary local startup; full match and separate networks pending';
- }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;report.failureStates=await Promise.all(clients.filter(c=>c.game).map(async c=>({name:c.name,lan:await state(c),transport:await rpc(c,'browserWebRtcEndpointState'),frame:await rpc(c,'realEngineFrame',{frames:1})})));for(const c of clients.filter(c=>c.game)){const shot=await rpc(c,'screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile(`output/playwright/multiplayer-${c.name}.png`,Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));}}
+ }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;report.failureStates=await Promise.all(clients.filter(c=>c.game).map(async c=>({name:c.name,url:c.game.url(),siteStatus:await c.page.locator('#gameStatus').textContent(),engineStatus:await c.game.locator('#status').textContent(),lan:await state(c),transport:await rpc(c,'browserWebRtcEndpointState'),frame:await rpc(c,'realEngineFrame',{frames:1})})));for(const c of clients.filter(c=>c.game)){const shot=await rpc(c,'screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile(`output/playwright/multiplayer-${c.name}.png`,Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));}}
  finally{clearInterval(timer);await fs.writeFile('.local/multiplayer-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors},null,2));for(const c of contexts)await c.close();}
 })();
 

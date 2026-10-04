@@ -52,10 +52,10 @@ async function roomConnect(action,code){
   try{
   error('');const config=await fetch('./network-config.json').then(r=>{if(!r.ok)throw Error('Room service is unavailable. Solo skirmish remains available.');return r.json()});
   if(!config.rooms||!config.signaling)throw Error('The multiplayer service is offline. Solo skirmish remains available.');
-  const content=await fingerprint();const url=new URL(config.rooms,location.href);url.protocol=url.protocol==='https:'?'wss:':'ws:';
+  const content=await fingerprint();const url=new URL(config.rooms,location.href);if(url.protocol==='https:')url.protocol='wss:';else if(url.protocol==='http:')url.protocol='ws:';if(!['ws:','wss:'].includes(url.protocol))throw Error('The room service must use a WebSocket URL.');
   roomSocket=new WebSocket(url);roomSocket.onopen=()=>roomSocket.send(JSON.stringify({action,code,name:identity.name,guest:identity.guest,content,runtime:config.runtime}));
   roomSocket.onmessage=e=>{const msg=JSON.parse(e.data);if(msg.error){error(msg.error);roomSocket.close();roomSocket=null;return;}roomState=msg;view('room');$('roomTitle').textContent=msg.code;$('roomStatus').textContent=`${msg.players.length}/2 commanders connected to the room service`;$('players').replaceChildren(...msg.players.map(p=>{const li=document.createElement('li');const name=document.createElement('strong');name.textContent=p.name;const state=document.createElement('span');state.textContent=p.host?'Host':'Guest';li.append(name,state);return li}));$('compatibility').textContent=msg.compatible?'Runtime and content fingerprints match.':'Waiting for a second compatible installation.';$('roomLaunch').disabled=!msg.compatible;};
-  roomSocket.onerror=()=>error('Could not connect to the room service. Check its URL and restart the service.');roomSocket.onclose=()=>{if(roomState)$('roomStatus').textContent='Room connection closed. Leave and reconnect before starting another game.';};
+  roomSocket.onerror=()=>error('Could not connect to the room service. Check its URL and restart the service.');roomSocket.onclose=()=>{if(roomState)$('roomStatus').textContent='Room connection closed. Leave and reconnect before starting another game.';else roomSocket=null;};
   }finally{connecting=false;$('createRoom').disabled=false;$('joinForm').querySelector('button').disabled=false;}
 }
 async function fingerprint(){
@@ -92,7 +92,7 @@ window.addEventListener('message',e=>{
   }
   if(d.type==='zh-room-state'){
     const state=d.state,slots=state?.game?.slots||[];
-    $('gameStatus').textContent=state?.network?.ready?`Match running · frame ${state.network.logicFrame}${state.network.crcMismatch?' · DESYNC: exit and report diagnostics':''}`:`${slots.filter(s=>s.human).length}/2 engine players · ${slots.filter(s=>s.human&&s.accepted).length} ready`;
+    $('gameStatus').textContent=state?.network?.ready?`${state.network.logicFrame>0?'Match running':'Waiting for simulation'} · frame ${state.network.logicFrame}${state.network.crcMismatch?' · DESYNC: exit and report diagnostics':''}`:`${slots.filter(s=>s.human).length}/2 engine players · ${slots.filter(s=>s.human&&s.accepted).length} ready`;
     $('gameStart').disabled=slots.filter(s=>s.human).length!==2||slots.filter(s=>s.human).some(s=>!s.accepted||!s.hasMap);
     $('gameReady').disabled=!!state?.network?.ready;
     if(state?.game?.map)$('gameMap').value=state.game.map;
