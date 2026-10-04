@@ -1,7 +1,9 @@
 {
-  "temporaryService": true,
-  "runtime": "3ccaa0e9-compiled-combined-v6",
-  "rooms": "wss://lenders-minerals-nice-floors.trycloudflare.com/rooms",
-  "iceServers": [],
-  "signaling": "wss://lenders-minerals-nice-floors.trycloudflare.com/nostr"
+    "temporaryService":  true,
+    "runtime":  "3ccaa0e9-compiled-combined-v6",
+    "rooms":  "wss://quality-cocktail-fantasy-seminar.trycloudflare.com/rooms",
+    "iceServers":  [
+
+                   ],
+    "signaling":  "wss://quality-cocktail-fantasy-seminar.trycloudflare.com/nostr"
 }
