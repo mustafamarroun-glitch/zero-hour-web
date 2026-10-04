@@ -5,3 +5,6 @@
 *.part01 -text
 *.part02 -text
 public/dist-threaded-release/* -text
+public/yuri/engine/** -text
+public/yuri/relay/** -text
+tools/yuri-relay/relay.cjs -text
