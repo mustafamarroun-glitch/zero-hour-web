@@ -5,6 +5,11 @@ if(!crossOriginIsolated&&isSecureContext&&'serviceWorker' in navigator){
     await navigator.serviceWorker.register(new URL('./coi-serviceworker.js',import.meta.url),{scope:new URL('./',import.meta.url).pathname});
     await navigator.serviceWorker.ready;
     if(!navigator.serviceWorker.controller)await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));
-    if(!sessionStorage.getItem('zhweb-isolation-retry')){sessionStorage.setItem('zhweb-isolation-retry','1');location.reload();}
+    if(!sessionStorage.getItem('zhweb-isolation-retry')){
+      sessionStorage.setItem('zhweb-isolation-retry','1');location.reload();
+      // Do not enable forms in a document that is being replaced. A fast
+      // interaction here can be lost to the isolation reload on static hosts.
+      await new Promise(()=>{});
+    }
   }catch(e){console.warn('Static-host isolation unavailable',e.message);}
 }else if(crossOriginIsolated)sessionStorage.removeItem('zhweb-isolation-retry');

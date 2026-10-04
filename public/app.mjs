@@ -28,6 +28,7 @@ $('nameForm').onsubmit=e=>{e.preventDefault();const name=$('name').value.trim();
 $('changeName').onclick=()=>{if(roomSocket){error('Leave your room before changing your commander name.');return;}$('name').value=identity?.name||'';view('entry');$('name').focus()};
 async function importFiles(files,archive=false){
   if(importing||!files.length)return;
+  if(!restoreIdentity()){view('entry');error('Enter your commander name before importing files.');return;}
   if(libraryBusy||launching||$('exportLibrary').disabled||!$('gameView').hidden){error('Wait for the current file operation or exit the game before importing.');return;}
   importing=true;importController=new AbortController();const controller=importController;let extracted;
   error('');$('cancelImport').hidden=false;for(const id of ['chooseFolder','chooseFiles','chooseArchive','backToLibrary'])$(id).disabled=true;
@@ -73,6 +74,7 @@ $('exportLibrary').onclick=async()=>{
 };$('cancelBackup').onclick=()=>backupController?.abort();
 async function launch(room){
   error('');if(!installed||!$('gameView').hidden||libraryBusy||launching||importing||$('exportLibrary').disabled)return;
+  if(!restoreIdentity()){view('entry');error('Enter your commander name before launching.');return;}
   launching=true;
   $('solo').disabled=$('roomLaunch').disabled=true;
   try{

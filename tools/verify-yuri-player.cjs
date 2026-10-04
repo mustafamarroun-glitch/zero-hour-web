@@ -8,11 +8,11 @@ runBrowserTest(async()=>{
  const page=ctx.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()>=400)report.missing.push(r.status()+' '+r.url())});
  try{
   await fs.mkdir('output/playwright',{recursive:true});
-  await page.goto(new URL('yuri/',site).href);await page.locator('#nameForm button').waitFor({state:'visible'});await page.locator('#name').fill('TouchTest');await page.locator('#nameForm button').click();
+  await page.goto(new URL('yuri/',site).href);await page.waitForFunction(()=>crossOriginIsolated&&typeof document.getElementById('nameForm')?.onsubmit==='function'&&!document.querySelector('#nameForm button').disabled);await page.locator('#name').fill('TouchTest');await page.locator('#nameForm button').click();await page.locator('#setup').waitFor({state:'visible'});
   const defaults=await page.evaluate(async()=>{const p=await import('../preferences.mjs');const mobile=p.loadPreferences('yuri'),zero=p.loadPreferences('zero-hour');p.savePreferences({...mobile,resolution:'1600x900'},'yuri');const restored=p.loadPreferences('yuri');p.savePreferences(mobile,'yuri');return {mobile,zero,restored}});
   assert.equal(defaults.mobile.resolution,'800x600');assert.equal(defaults.zero.resolution,'1280x720');assert.equal(defaults.restored.resolution,'1600x900');report.checks.push('Touch Yuri defaults to 800x600; saved choices and Zero Hour defaults preserved');
   await page.locator('#folderInput').setInputFiles(process.env.YURI_GAME_DIR||'.local/personal-game-files/Yuri-Revenge-Web-no-movies');await page.locator('#lobby').waitFor({timeout:180000});
-  await page.locator('#solo').click();const native=page.frameLocator('#gameFrame').frameLocator('#runtime');
+  assert.equal(await page.locator('#commander').textContent(),'TouchTest');await page.locator('#solo').click();await page.locator('#gameView').waitFor({state:'visible',timeout:45000});const native=page.frameLocator('#gameFrame').frameLocator('#runtime');
   await native.locator('#screen').waitFor({timeout:120000});await native.locator('#screen').evaluate(canvas=>new Promise((resolve,reject)=>{const end=Date.now()+120000;const timer=setInterval(()=>{if(/mainmenu/i.test(canvas.dataset.shellPage||'')){clearInterval(timer);resolve()}else if(Date.now()>end){clearInterval(timer);reject(Error('Native main menu did not render'))}},250)}));
   const state=await native.locator('#screen').evaluate(canvas=>({url:location.href,ratio:devicePixelRatio,buffer:[canvas.width,canvas.height],css:[canvas.clientWidth,canvas.clientHeight],tracing:canvas.dataset.vmBatch,sidebar:getComputedStyle(document.getElementById('vm-controls')).display,debug:getComputedStyle(document.getElementById('vm-debug')).display}));
   assert.equal(new URL(state.url).searchParams.has('debug'),false);assert.equal(state.ratio,1);assert.equal(state.tracing,undefined);assert.equal(state.sidebar,'none');assert.equal(state.debug,'none');assert.ok(state.buffer[0]<=800&&state.buffer[1]<=600);report.presentation=state;report.checks.push('Original native menu boots with no debug tracing or duplicate sidebar and a bounded phone buffer');
@@ -32,5 +32,5 @@ runBrowserTest(async()=>{
   await page.goto(site);await page.locator('#setup').waitFor();await page.locator('#openSettings').click();assert.equal(await page.locator('#yuriTools').isVisible(),false);report.checks.push('Zero Hour keeps its own settings surface');
   assert.deepEqual(report.errors,[]);assert.deepEqual(report.missing,[]);report.status='passed';
  }catch(error){report.status='failed';report.failure=error.stack;await page.screenshot({path:'output/playwright/yuri-player-failure.png'}).catch(()=>{});process.exitCode=1}
- finally{await ctx.close();await fs.writeFile('.local/yuri-player-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2))}
+ finally{await ctx.close();const result=JSON.stringify(report,null,2);await fs.writeFile('.local/yuri-player-verification.json',result);await fs.writeFile(new URL(site).hostname==='localhost'?'.local/yuri-player-local-verification.json':'.local/yuri-player-public-verification.json',result);console.log(result)}
 });
