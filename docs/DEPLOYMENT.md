@@ -1,6 +1,6 @@
 # Separate deployment
 
-The hosting package includes Yuri’s Revenge at `/yuri/`. `npm start` supplies the shared room service and independent RA2 VM relay; restart existing servers to load them. Static hosts configure `/rooms`, `/nostr` and the `yuriRelay` WS/WSS service origin in `network-config.json`. See [YURI.md](YURI.md) for paths, allowed origins and verification limits. The October 4 preview package is prepared for the existing dedicated GitHub Pages site.
+The hosting package includes Yuri’s Revenge at `/yuri/`. `npm start` supplies the shared room service and independent RA2 VM relay; restart existing servers to load them. Static hosts configure `/rooms`, `/nostr` and the `yuriRelay` WS/WSS service origin in `network-config.json`. See [YURI.md](YURI.md) for paths, allowed origins and verification limits. The October 4 preview is published at https://mustafamarroun-glitch.github.io/zero-hour-web/, with successful Linux release checks and real HTTPS Yuri setup/native-menu acceptance. Complete multiplayer acceptance remains pending.
 
 `npm run package` creates an allowlisted static website and complete corresponding source. Publish `release/site`, not the workspace. Original installations, profiles, retail data, screenshots, saves and credentials are excluded. The original Online-Games deployment must remain untouched.
 

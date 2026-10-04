@@ -8,7 +8,7 @@ Local checks passed for navigation/importer at 1440px and 390px, incomplete-file
 
 After reboot, the launcher/relay checks passed again and two independent Chrome sessions entered a real native Network match through the site's compiled Yuri runtime and localhost:8093 relay. MCV deployment synchronized in both directions, with approximately 1.72/1.98-second observations, and simulation advanced through a 20-second observation without closed relay connections. This was same-PC, short-match acceptance. The test enters the runtime route directly; launcher invite configuration was checked separately. See [YURI.md](YURI.md) for browser-only INI preferences, read-only probes, reproducibility and initial verifier failures. Native evidence is `output/playwright/ra2-peer-discovery-IoSYny/result.json` and companion captures/performance reports; UI-only reports now use `.local/yuri-ui-verification.json`.
 
-Yuri sustained/complete matches, movement, save reload, audio correctness, mobile/Mac and separate-computer internet play remain unverified. Yuri has not been published.
+Yuri sustained/complete matches, movement, save reload, audio correctness, mobile/Mac and separate-computer internet play remain unverified. The shared-setup preview is now published; the current HTTPS acceptance is recorded below.
 
 ## Version 2.1 acceptance
 
@@ -72,6 +72,12 @@ Initial failures were corrected: the loading overlay's author CSS overrode `hidd
 Private evidence is under `.local/*verification.json` and `output/playwright/`. These files and gameplay captures are excluded from Git and hosting.
 
 ## Remaining gates
+
+### Published Yuri setup preview — October 4, 2026
+
+GitHub Pages workflow [37217220727](https://github.com/mustafamarroun-glitch/zero-hour-web/actions/runs/37217220727) deployed commit `37ab25b` successfully after Linux syntax, module, package and pinned-runtime/source checksum checks. The actual [Yuri HTTPS route](https://mustafamarroun-glitch.github.io/zero-hour-web/yuri/) then passed all 16 shared setup checks, including real folder/files/RAR/ZIP installation, reload, backup, failure/cancellation recovery, removal preservation, public room compatibility and original native-menu rendering without a second picker. There were no page errors, missing resources or uploads in that run. Report: `.local/yuri-public-setup-verification.json`.
+
+The deployed Zero Hour Create room control and bidirectional WebRTC datagrams passed through the new public service. Synthetic Yuri discovery, binary forwarding and session separation also passed over public WSS. These are component checks, not complete internet matches. The preview service runs on localhost:8096 through a temporary Cloudflare tunnel; this PC must stay awake for multiplayer. Git checkout normalization initially changed inventoried runtime bytes; `.gitattributes` now preserves them, and committed-file inventory comparisons and the Linux release checks both passed. An initial Git upload timed out; the subsequent non-forced push succeeded.
 
 ### Yuri shared setup acceptance — October 4, 2026
 
