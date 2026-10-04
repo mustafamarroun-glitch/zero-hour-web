@@ -1,19 +1,44 @@
 import './storage-scope.js';
 import {assetLibrary} from './launcher-asset-manager.mjs';
+import {VERSION} from '../preferences.mjs';
+import {runRuntimeShutdownSequence,runtimeShutdownWarning,settleWithin} from './runtime-shutdown-sequence.mjs';
 const params=new URLSearchParams(location.search), name=params.get('commander');
-let ready=false;
+let ready=false,exiting=false,exitPromise;
 let roomTimer,healthTimer,healthBusy=false,displayBusy=false,showPerformance=false;
 const canvas=document.querySelector('#viewport');
 let display={width:Number(params.get('width'))||1280,height:Number(params.get('height'))||720};
 if(![1024,1280,1600,1920].includes(display.width)&&!(display.width>=800&&display.width<=1920))display.width=1280;
 if(!(display.height>=600&&display.height<=1080))display.height=720;
 let scaling='fit';
-function fitCanvas(){canvas.style.width=`min(100vw, ${scaling==='actual'?`${display.width}px`:`calc(100vh * ${display.width} / ${display.height})`})`;canvas.style.height=`min(100vh, ${scaling==='actual'?`${display.height}px`:`calc(100vw * ${display.height} / ${display.width})`})`;canvas.style.objectFit='contain'}
+function fitCanvas(){const capWidth=scaling==='actual'?`, ${display.width}px`:'',capHeight=scaling==='actual'?`, ${display.height}px`:'';canvas.style.width=`min(100vw, calc(100vh * ${display.width} / ${display.height})${capWidth})`;canvas.style.height=`min(100vh, calc(100vw * ${display.height} / ${display.width})${capHeight})`;canvas.style.objectFit='contain'}
 canvas.width=display.width;canvas.height=display.height;fitCanvas();
 let controlSignature='';
 const controlNames=/^LanGameOptionsMenu\.wnd:ComboBox(PlayerTemplate|Color|Team|Player)([0-7])$/;
 const report=message=>{document.querySelector('#status').textContent=message;parent.postMessage({type:'zh-status',message},location.origin)};
-async function checked(command,payload={}){const result=await window.CnCPort.rpc(command,payload);if(result?.ok===false)throw Error(result.error||`${command} failed`);return result}
+async function checked(command,payload={}){if(exiting)throw Error('Game is closing.');const result=await window.CnCPort.rpc(command,payload);if(result?.ok===false)throw Error(result.error||`${command} failed`);return result}
+function exitRuntime(reason='toolbar'){
+  if(exitPromise)return exitPromise;
+  exiting=true;ready=false;clearInterval(roomTimer);clearInterval(healthTimer);
+  parent.postMessage({type:'zh-exit-started',reason},location.origin);
+  exitPromise=(async()=>{
+    let result,warning;
+    try{
+      const bridge=window.CnCPort;
+      if(bridge){
+        result=await runRuntimeShutdownSequence({
+          stopSaveScheduling:()=>bridge.stopSavePersistenceScheduling(),
+          stopLoop:()=>bridge.rpc('threadedStopLoop',{timeoutMs:6000}),
+          persistFinalSave:()=>bridge.persistFinalSaves(`standalone-exit:${reason}`),
+          gracefulShutdown:()=>bridge.rpc('shutdownRuntime'),
+          forceShutdown:()=>bridge.rpc('forceShutdownRuntime'),
+        });
+        warning=runtimeShutdownWarning({...result.result,close:result.close});
+      }
+    }catch(error){warning={message:`Game closed. Final save status could not be confirmed: ${error.message}`}}
+    finally{parent.postMessage({type:'zh-exited',warning:warning?.message,shutdown:result},location.origin)}
+  })();
+  return exitPromise;
+}
 export async function boot(){
   try{
     if(!name||!/^[A-Za-z0-9 _-]{2,12}$/.test(name))throw Error('Choose a valid commander name before launching.');
@@ -65,7 +90,7 @@ export async function boot(){
         if(showPerformance){const status=(await checked('threadedStatus')).status;const renderer=status?.graphics?.renderer||'';parent.postMessage({type:'zh-performance',renderer:/SwiftShader/i.test(renderer)?'Software graphics':'Graphics',width:display.width,height:display.height,logicFrame:state?.logicFrame??state?.gameplay?.logicFrame},location.origin)}
       }catch(error){parent.postMessage({type:'zh-error',message:error.message},location.origin)}finally{healthBusy=false}
     },2000);
-  }catch(error){report(error.message);document.querySelector('#retry').hidden=false;parent.postMessage({type:'zh-error',message:error.message},location.origin)}
+  }catch(error){if(exiting)return;report(error.message);document.querySelector('#retry').hidden=false;parent.postMessage({type:'zh-error',message:error.message},location.origin)}
 }
 async function clickWhenReady(windowName){
   const deadline=Date.now()+60000;
@@ -120,7 +145,8 @@ async function sendRoomControls(){
   controlSignature=signature;
   parent.postMessage({type:'zh-room-controls',controls},location.origin);
 }
-document.querySelector('#retry').onclick=()=>parent.postMessage({type:'zh-exit'},location.origin);
+document.querySelector('#retry').onclick=()=>exitRuntime('retry');
+window.addEventListener('cncport:runtimequit',()=>exitRuntime('native-menu'));
 window.addEventListener('cncport:threadedlooperror',e=>parent.postMessage({type:'zh-error',message:e.detail?.error||'Engine loop stopped. Exit and relaunch.'},location.origin));
 window.addEventListener('cncport:resolutionchange',e=>{display={width:e.detail.width,height:e.detail.height};fitCanvas()});
 document.addEventListener('keydown',e=>{if(e.key==='F8'||(e.altKey&&e.key==='Enter')){e.preventDefault();e.stopImmediatePropagation();parent.postMessage({type:'zh-shortcut',action:e.key==='F8'?'toolbar':'fullscreen'},location.origin)}},true);
@@ -133,6 +159,8 @@ document.addEventListener('pointermove',e=>{
 });
 window.addEventListener('message',async e=>{
   if(e.origin!==location.origin||e.source!==parent)return;
+  if(e.data?.type==='zh-exit'){await exitRuntime();return;}
+  if(exiting)return;
   try{
     if(e.data.type==='zh-volume'){const music=Math.max(0,Math.min(1,Number(e.data.music??e.data.value))),effects=Math.max(0,Math.min(1,Number(e.data.effects??e.data.value)));if(Number.isFinite(music)&&Number.isFinite(effects))await checked('setBrowserAudioMixerVolumes',{scriptVolumes:{music,sound:effects,sound3D:effects,speech:effects}});}
     if(e.data.type==='zh-focus')canvas.focus({preventScroll:true});
@@ -153,17 +181,13 @@ window.addEventListener('message',async e=>{
       await checked('agentUiSelectIndex',{windowId:w.id,name:w.name,index:Number(e.data.index)});
       controlSignature='';
     }
-    if(e.data.type==='zh-exit'){
-      clearInterval(roomTimer);
-      clearInterval(healthTimer);
-      if(ready){await checked('threadedStopLoop',{timeoutMs:15000});window.CnCPort.stopSavePersistenceScheduling();await window.CnCPort.persistFinalSaves('standalone-exit');await checked('browserWebRtcEndpointDisconnect');await checked('forceShutdownRuntime');}
-      parent.postMessage({type:'zh-exited'},location.origin);
-    }
     if(e.data.type==='zh-diagnostics'){
-      const result=await checked('threadedStatus');
-      const frame=ready?await checked('realEngineFrame',{frames:1}):null;
-      const transport=params.get('room')?await checked('browserWebRtcEndpointState'):null;
-      parent.postMessage({type:'zh-diagnostics',version:'2.0.0',display,result,frame,transport,userAgent:navigator.userAgent,isolation:crossOriginIsolated,graphics:params.get('shaderTier'),date:new Date().toISOString()},location.origin);
+      const [result,frame,transport]=await Promise.all([
+        settleWithin(checked('threadedStatus'),5000,'Engine status'),
+        ready?settleWithin(checked('realEngineFrame',{frames:1}),5000,'Game frame'):null,
+        params.get('room')?settleWithin(checked('browserWebRtcEndpointState'),5000,'Game transport'):null,
+      ]);
+      parent.postMessage({type:'zh-diagnostics',version:VERSION,display,result,frame,transport,userAgent:navigator.userAgent,isolation:crossOriginIsolated,graphics:params.get('shaderTier'),date:new Date().toISOString()},location.origin);
     }
   }catch(error){parent.postMessage({type:'zh-error',message:error.message},location.origin)}
 });

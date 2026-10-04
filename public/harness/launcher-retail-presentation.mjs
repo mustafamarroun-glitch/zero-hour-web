@@ -1,4 +1,4 @@
-const CACHE_DB = "zeroh-retail-presentation";
+const CACHE_DB = "zero-hour-web-v1:retail-presentation";
 const CACHE_STORE = "art";
 const CACHE_VERSION = 1;
 const ART_ARCHIVE = "EnglishZH.big";

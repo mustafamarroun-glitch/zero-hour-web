@@ -96,9 +96,13 @@ CONTROLS AND EXIT
   toolbar behavior, dark mode and performance information.
 - Settings "Graphics renderer": choose Compatibility or Shader effects;
   this applies on the next launch. Resolution applies to the running engine.
-- "Diagnostics": download a report for troubleshooting.
+- "Diagnostics": download a report for troubleshooting. Settings also offers
+  "Copy diagnostics", including recent errors and browser/renderer information.
 - "Exit game": confirm leaving an active match, then shut down and flush saves.
   Wait for the lobby to return before closing the tab or stopping the server.
+  The original game's "EXIT GAME" also returns to the web launcher in 2.1.
+  If shutdown stalls, "Force close game" appears. Confirming it may leave the
+  latest save unfinished; stored saves and your installation remain.
 
 PLAY WITH A FRIEND - EXPERIMENTAL
 
@@ -147,6 +151,18 @@ This ZIP contains imported game archives, not saved matches or your commander
 profile. Clearing browser site data can remove the installation and saves.
 GitHub Pages projects on the same account share site-wide storage clearing,
 even though this project keeps its own library separate.
+
+To free browser game storage in Version 2.1:
+- "Remove installed game" in Installed files & recovery removes the imported
+  game archives, while keeping your commander, settings and stored saves.
+- "Clean leftover game files" in recovery or Settings removes abandoned import
+  and launch folders while keeping the current installation and stored saves.
+- Close other game tabs before cleaning. Files in use are protected. Removal
+  failures are shown and do not mark an installation as successfully removed.
+- Settings "Check for updates" compares the interface with this site's version.
+  Apply an available update after exiting the game, leaving your room and
+  finishing file operations. The update reloads the interface without clearing
+  game archives or saved data.
 
 TROUBLESHOOTING
 

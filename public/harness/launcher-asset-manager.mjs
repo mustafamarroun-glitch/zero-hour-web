@@ -17,7 +17,7 @@ import { filesFromHandles } from "./launcher-file-collector.mjs";
 const INSTALLED_KEY = "zeroh-installed-library.combined.v6";
 const OLD_INSTALLED_KEYS = [];
 const LIBRARY_VERSION = 6;
-const HANDLE_DB = "zeroh-asset-handles.combined.v1";
+const HANDLE_DB = "zero-hour-web-v1:asset-handles.combined.v1";
 const HANDLE_STORE = "sources";
 const LIBRARY_MUTATION_LOCK = "zeroh-library-mutation";
 const RUNTIME_ROOT = "cnc-archives";
@@ -383,15 +383,14 @@ class AssetLibrary {
       for await (const [name, entry] of runtime.entries()) {
         const match = entry.kind === "directory" ? /^ns-(.+)-\d+$/.exec(name) : null;
         if (!match || locks.names.has(`${RUNTIME_LOCK_PREFIX}${match[1]}`)) continue;
-        try {
-          await runtime.removeEntry(name, { recursive: true });
-          removed.push(name);
-        } catch (error) {
-          failed.push({ name, error: error?.message || String(error) });
-        }
+        await navigator.locks.request(`${RUNTIME_LOCK_PREFIX}${match[1]}`, { mode: "exclusive", ifAvailable: true }, async (lock) => {
+          if (!lock) return;
+          try { await runtime.removeEntry(name, { recursive: true }); removed.push(name); }
+          catch (error) { failed.push({ name, error: error?.message || String(error) }); }
+        });
       }
-    } catch {
-      // No temporary runtime storage yet.
+    } catch (error) {
+      if (error.name !== "NotFoundError") failed.push({ name: RUNTIME_ROOT, error: error.message });
     }
     return { removed, failed, skipped: false };
   }
@@ -399,6 +398,7 @@ class AssetLibrary {
   async managedStorageInventory() {
     const locks = await heldLockNames();
     const installed = this.installedLibrary();
+    const unreadableRecord = Boolean(storageGet(INSTALLED_KEY) && !installed);
     const entries = [];
     const root = await navigator.storage.getDirectory();
     const collectRoot = async (rootName, pattern, describe) => {
@@ -433,10 +433,22 @@ class AssetLibrary {
       const current = installed?.root === path;
       return {
         path,
-        name: current ? "Installed Zero Hour library" : "Unrecognized installed files",
+        name: current ? "Installed Zero Hour library" : unreadableRecord ? "Installed files awaiting recovery" : "Unrecognized installed files",
         detail: name,
         kind: "installed",
-        state: active ? "active" : current ? "installed" : "orphaned",
+        state: active ? "active" : current ? "installed" : unreadableRecord ? "recovery" : "orphaned",
+        deletable: locks.available && !active && !unreadableRecord,
+        ...summary,
+      };
+    });
+    await collectRoot("archive-staging", /^extract-[a-z0-9-]+$/, (name, summary) => {
+      const active = locks.names.has(`zhweb-extract:${name}`);
+      return {
+        path: `archive-staging/${name}`,
+        name: active ? "Active archive extraction" : "Temporary extraction files",
+        detail: name,
+        kind: "extraction",
+        state: active ? "active" : "stale",
         deletable: locks.available && !active,
         ...summary,
       };
@@ -451,37 +463,86 @@ class AssetLibrary {
   }
 
   async deleteManagedStorage(path) {
+    return this.withLibraryMutation(() => this.deleteManagedStorageUnlocked(path));
+  }
+
+  async deleteManagedStorageUnlocked(path) {
     const normalized = String(path || "").replace(/^\/+|\/+$/g, "");
     const runtimeMatch = /^cnc-archives\/(ns-(.+)-\d+)$/.exec(normalized);
     const installMatch = /^cnc-library\/(install-[a-z0-9-]+)$/i.exec(normalized);
     if (!runtimeMatch && !installMatch) throw new Error("This is not launcher-managed storage");
-    const locks = await heldLockNames();
-    if (!locks.available) {
+    if (!navigator.locks?.request) {
       throw new Error("This browser cannot verify whether another game tab is using these files");
     }
-    if (runtimeMatch && locks.names.has(`${RUNTIME_LOCK_PREFIX}${runtimeMatch[2]}`)) {
-      throw new Error("Active launch files cannot be deleted; close their game tab first");
-    }
-    if (installMatch && locks.names.has(`${INSTALL_LOCK_PREFIX}${installMatch[1]}`)) {
-      throw new Error("The installed library is in use; close its game tab first");
-    }
-    if (installMatch && this.installedLibrary()?.root === normalized) {
-      await this.forget();
-      return { removed: true, libraryRemoved: true };
-    }
-    const parts = normalized.split("/");
-    const root = await navigator.storage.getDirectory();
-    const parent = await root.getDirectoryHandle(parts[0], { create: false });
-    await parent.removeEntry(parts[1], { recursive: true });
-    return { removed: true, libraryRemoved: false };
+    const lockName = installMatch ? `${INSTALL_LOCK_PREFIX}${installMatch[1]}`
+      : `${RUNTIME_LOCK_PREFIX}${runtimeMatch[2]}`;
+    return navigator.locks.request(lockName, { mode: "exclusive", ifAvailable: true }, async (lock) => {
+      if (!lock) throw new Error("These game files are in use. Close the other game tab and retry.");
+      const libraryRemoved = this.installedLibrary()?.root === normalized;
+      const parts = normalized.split("/");
+      const root = await navigator.storage.getDirectory();
+      try {
+        const parent = await root.getDirectoryHandle(parts[0], { create: false });
+        await parent.removeEntry(parts[1], { recursive: true });
+      } catch (error) {
+        // Missing data is already removed. Any other failure keeps the manifest
+        // authoritative so the interface never claims a failed deletion worked.
+        if (error.name !== "NotFoundError") throw error;
+      }
+      if (libraryRemoved) {
+        storageRemove(INSTALLED_KEY);
+        this.lastValidationError = null;
+        OLD_INSTALLED_KEYS.forEach(storageRemove);
+        this.preparedArchives = null;
+        this.preparedVideos = [];
+        this.setPreparedCursorAsset(null);
+        this.scanResult = null;
+        this.sourceHandles = [];
+        this.presentationIconCandidate = null;
+        // This standalone importer installs into OPFS and does not retain source
+        // permissions or presentation art. Do not clear legacy shared-origin
+        // IndexedDB databases belonging to other launchers.
+        this.rememberedHandlesPromise = Promise.resolve([]);
+      }
+      return { removed: true, libraryRemoved };
+    });
   }
 
-  async prepare(mode, onProgress = null) {
+  async cleanUnusedStorage() {
+    return this.withLibraryMutation(async () => {
+      if (storageGet(INSTALLED_KEY) && !this.installedLibrary()) {
+        throw new Error("The installation record is unreadable. Retry the check or explicitly remove the installation before cleaning leftover files.");
+      }
+      const installed = await this.collectInstalledRoots(this.installedLibrary()?.root);
+      const runtime = await this.collectStaleRuntimeStorage();
+      return { removed: [...installed.removed, ...runtime.removed], failed: [...installed.failed, ...runtime.failed], skipped: installed.skipped || runtime.skipped };
+    });
+  }
+
+  async removeInstalledLibrary() {
+    return this.withLibraryMutation(async () => {
+      const installed = this.installedLibrary();
+      if (installed) return this.deleteManagedStorageUnlocked(installed.root);
+      // An explicit removal may reclaim our allowlisted installation roots
+      // even when the record is corrupt. Never clear the record on failure.
+      const result = await this.collectInstalledRoots(null);
+      if (result.failed.length || result.skipped) throw new Error("Some installation files could not be removed. Close other game tabs and retry.");
+      storageRemove(INSTALLED_KEY);
+      this.preparedArchives = null;
+      this.preparedVideos = [];
+      this.setPreparedCursorAsset(null);
+      this.scanResult = null;
+      this.lastValidationError = null;
+      return result;
+    });
+  }
+
+  async prepare(mode, onProgress = null, { signal } = {}) {
     if (!["once", "remember", "install"].includes(mode)) {
       throw new Error(`Unsupported launcher storage mode: ${mode}`);
     }
-    if (mode === "install") return this.withLibraryMutation(() => this.prepareUnlocked(mode, onProgress));
-    return this.prepareUnlocked(mode, onProgress);
+    if (mode === "install") return this.withLibraryMutation(() => this.prepareUnlocked(mode, onProgress, signal));
+    return this.prepareUnlocked(mode, onProgress, signal);
   }
 
   withLibraryMutation(callback) {
@@ -490,7 +551,8 @@ class AssetLibrary {
       : callback();
   }
 
-  async prepareUnlocked(mode, onProgress = null) {
+  async prepareUnlocked(mode, onProgress = null, signal) {
+    signal?.throwIfAborted();
     if (!this.scanResult?.ok) throw new Error("Select complete Generals + Zero Hour original media first");
     await this.collectStaleRuntimeStorage();
     // StorageManager.estimate() is deliberately conservative and may report
@@ -541,13 +603,15 @@ class AssetLibrary {
           videos: installedVideos,
           cursorAsset: installedCursorAsset,
         };
+        await this.clearRememberedHandles();
+        signal?.throwIfAborted();
         if (!storageSet(INSTALLED_KEY, JSON.stringify(manifest))) {
           throw new Error("Browser storage could not save the installed-library manifest");
         }
+        this.lastValidationError = null;
         OLD_INSTALLED_KEYS.forEach(storageRemove);
-        await this.clearRememberedHandles();
         if (previousInstall?.root && previousInstall.root !== installRoot) {
-          await this.request("discard", { path: previousInstall.root }).catch(() => {});
+          await this.deleteManagedStorageUnlocked(previousInstall.root).catch(() => {});
         }
       } else {
         if (mode === "remember" && this.sourceHandles.length) {
@@ -621,11 +685,18 @@ class AssetLibrary {
   }
 
   async verifyInstalledLibraryUnlocked() {
+    this.lastValidationError = null;
     const installed = this.installedLibrary();
     OLD_INSTALLED_KEYS.forEach(storageRemove);
     if (!installed) {
-      storageRemove(INSTALLED_KEY);
-      await this.collectInstalledRoots(null);
+      // A missing or unreadable manifest is not permission to erase archives.
+      // Explicit cleanup can reclaim abandoned roots after the player reviews it.
+      if (storageGet(INSTALLED_KEY)) this.lastValidationError = "The installed-game record could not be read. Your files were kept. Retry, import a complete replacement, or remove the game in Settings.";
+      if (this.lastValidationError) {
+        this.preparedArchives = null;
+        this.preparedVideos = [];
+        this.setPreparedCursorAsset(null);
+      }
       return null;
     }
     try {
@@ -634,8 +705,12 @@ class AssetLibrary {
         directory = await directory.getDirectoryHandle(part, { create: false });
       }
       for (const archive of installed.archives) {
-        const file = await (await directory.getFileHandle(archive.name, { create: false })).getFile();
-        if (file.size !== archive.bytes) throw new Error(`${archive.name} size changed`);
+        try {
+          const file = await (await directory.getFileHandle(archive.name, { create: false })).getFile();
+          if (file.size !== archive.bytes) throw new Error("file size changed");
+        } catch (error) {
+          throw new Error(`${archive.name}: ${error.message}`);
+        }
       }
       if (installed.videos.length) {
         const movies = await directory.getDirectoryHandle("movies", { create: false });
@@ -661,9 +736,11 @@ class AssetLibrary {
       }
       await this.collectInstalledRoots(installed.root);
       return installed;
-    } catch {
-      storageRemove(INSTALLED_KEY);
-      await this.collectInstalledRoots(null);
+    } catch (error) {
+      this.lastValidationError = `Installed files could not be checked: ${error.message}. Your files were kept. Retry the check, import a complete replacement, or remove the game in Settings.`;
+      this.preparedArchives = null;
+      this.preparedVideos = [];
+      this.setPreparedCursorAsset(null);
       return null;
     }
   }
@@ -907,6 +984,8 @@ class AssetLibrary {
 
   async collectInstalledRoots(keepRoot) {
     const keepName = keepRoot?.split("/").at(-1) || null;
+    const result = { removed: [], failed: [], skipped: false };
+    if (!navigator.locks?.request) return { ...result, skipped: true };
     try {
       const root = await navigator.storage.getDirectory();
       const library = await root.getDirectoryHandle("cnc-library", { create: false });
@@ -914,12 +993,17 @@ class AssetLibrary {
         const managed = entry.kind === "directory"
           && (name === "v1" || /^install-[a-z0-9-]+$/i.test(name));
         if (managed && name !== keepName) {
-          try { await library.removeEntry(name, { recursive: true }); } catch { /* live/locked root */ }
+          await navigator.locks.request(`${INSTALL_LOCK_PREFIX}${name}`, { mode: "exclusive", ifAvailable: true }, async (lock) => {
+            if (!lock) { result.skipped = true; return; }
+            try { await library.removeEntry(name, { recursive: true }); result.removed.push(`${INSTALL_ROOT}/${name}`); }
+            catch (error) { result.failed.push({ name, error: error.message }); }
+          });
         }
       }
-    } catch {
-      // No legacy/orphaned install roots, or another live page still owns one.
+    } catch (error) {
+      if (error.name !== "NotFoundError") result.failed.push({ name: INSTALL_ROOT, error: error.message });
     }
+    return result;
   }
 
   async restoreRemembered({ requestPermission = false, onProgress = null } = {}) {
@@ -946,7 +1030,6 @@ class AssetLibrary {
   }
 
   async archivesForLaunch(onProgress = null) {
-    if (this.preparedArchives?.length) return this.preparedArchives;
     const installed = await this.verifyInstalledLibrary();
     if (installed) {
       onProgress?.({ detail: "Installed Zero Hour library", completed: 1, total: 1 });
@@ -956,7 +1039,11 @@ class AssetLibrary {
       this.includeVideos = installed.includeVideos;
       return this.preparedArchives;
     }
-    throw new Error("Prepare your game library before launching");
+    if (this.preparedArchives?.length && this.preparedArchives.every(archive => archive.opfsPath?.startsWith(`${RUNTIME_ROOT}/`))) return this.preparedArchives;
+    this.preparedArchives = null;
+    this.preparedVideos = [];
+    this.setPreparedCursorAsset(null);
+    throw new Error(this.lastValidationError || "Prepare your game library before launching");
   }
 
   async presentationForLibrary(rememberedKey = null, options = {}) {
@@ -1010,7 +1097,7 @@ class AssetLibrary {
       installed: Boolean(installed),
       totalBytes: installed?.totalBytes || this.scanResult?.totalBytes || 0,
       formattedBytes: formatBytes(installed?.totalBytes || this.scanResult?.totalBytes || 0),
-      ready: Boolean(this.preparedArchives?.length || installed),
+      ready: !this.lastValidationError && Boolean(this.preparedArchives?.length || installed),
       originalCursors: Boolean(this.preparedCursorAsset || installed?.cursorAsset),
       presentationSource: retailPresentationSource,
     };

@@ -3,10 +3,17 @@ import './storage-scope.js';
 let active=null;
 async function staging(){return (await navigator.storage.getDirectory()).getDirectoryHandle('archive-staging',{create:true})}
 export async function cleanArchiveStaging(){
+  const result={removed:[],failed:[],skipped:false};
+  if(!navigator.locks?.request)return {...result,skipped:true};
   const dir=await staging();
   for await(const [name] of dir.entries())if(/^extract-[a-z0-9-]+$/.test(name)){
-    await navigator.locks.request(`zhweb-extract:${name}`,{ifAvailable:true},async lock=>{if(lock)await dir.removeEntry(name,{recursive:true})});
+    await navigator.locks.request(`zhweb-extract:${name}`,{ifAvailable:true},async lock=>{
+      if(!lock){result.skipped=true;return;}
+      try{await dir.removeEntry(name,{recursive:true});result.removed.push(name)}
+      catch(error){result.failed.push({name,error:error.message})}
+    });
   }
+  return result;
 }
 export async function extractGameArchive(file,{signal,onProgress=()=>{}}={}){
   if(active)throw Error('An archive is already being extracted.');

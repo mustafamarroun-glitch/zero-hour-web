@@ -1,5 +1,5 @@
 import './harness/storage-scope.js';
-export const VERSION='2.0.0';
+export const VERSION='2.1.0';
 export const DEFAULTS=Object.freeze({dark:true,autoHide:true,resolution:'1280x720',scaling:'fit',edgeScroll:true,music:75,effects:75,performance:false,graphics:'ff'});
 export function loadPreferences(){
   let saved={};try{saved=JSON.parse(localStorage.getItem('zhweb-settings-v2')||'{}')||{}}catch{}

@@ -2,6 +2,24 @@
 
 Updated 2026-10-04. The source project's earlier results are context only; the following checks concern Zero Hour Web.
 
+## Version 2.1 acceptance
+
+- Actual browser removal deleted all installed archives and cleared the manifest. A simulated filesystem refusal retained the manifest and allowed retry. Reload returned to import while preserving commander identity, an app-local stored-data sentinel and another product's OPFS data.
+- Transient installed-file read failure, file-size mismatch and corrupt records retained archives. Cached launch paths were cleared on failure; retry succeeded. An unreadable record blocks ambiguous cleanup and remains protected in the inventory. Explicit Settings removal recovers unreadable records, while active file locks prevent removal. Importer source/art caches are now product-scoped; cleanup left the ambiguous legacy shared IndexedDB sentinels intact. Extraction leftovers contribute to the usage estimate.
+- Stale installation, temporary launch and archive-extraction roots were removed. Active extraction and installation locks prevented deletion. The current installation remained valid and launched afterward.
+- A full real ZIP reimport restored 17 archives. Browser reload reused the installation. Cancelled RAR extraction, malformed ZIP replacement and cancellation during actual OPFS saving retained the previous installation.
+- The original native Exit Game button returned to the launcher with confirmed fresh final save flushing and runtime destruction. Website match exit supported confirmation/cancellation, flushed saves and returned. Installed files survived relaunch.
+- A simulated final-save failure returned with a save warning. A simulated loop-stop failure terminated the actual worker with strict quiescence evidence before fresh save flushing. A simulated unresponsive shutdown offered Force close; confirmation returned control, retained the installation and allowed another normal launch/exit.
+- Real Alpine Assault terrain rendered on the Windows hardware renderer. Live 1600 × 900 rendering and Actual size maintained 16:9 at three viewport sizes; native mouse input selected and moved an actual builder by more than 20 world units after resize.
+- Desktop/mobile settings had no horizontal overflow and retained a visible Close button while scrolling. Copy/download diagnostics included version 2.1.0, recent errors and engine display/renderer information. A simulated newer version was detected, and applying it was blocked while playing. Current-site version checking passed; publication of a future update is outside this local test.
+- Main and follow-up reports passed without page errors. The main run had no missing resources. The first follow-up verifier attempt raced website readiness and camera settlement; the corrected verifier waits for both. Reports are `.local/version-21-verification.json` and `.local/version-21-followup-verification.json`; private captures are `output/playwright/v21-*`.
+
+- The unchanged archived 2.0 site created a real original-engine Alpine Assault save through Save/Load. Serving 2.1 at the same origin/profile retained the installed root, commander, music and edge-scroll settings, and identical save bytes. The native Load menu restored the real battlefield and local units. Removing/reimporting the retail archives preserved that save, which loaded again. Reports are `.local/version-21-storage-verification.json` and `.local/version-21-upgrade-verification.json`.
+
+Verifier issues are recorded separately: a reused disposable Chrome profile closed during diagnostic download, a rerun toggled an already-open recovery panel closed, and the upgrade harness waited on a failed child-server restart. Verification now creates a fresh main profile, checks panel visibility and switches 2.0/2.1 roots inside one local server. These corrections do not change the game runtime.
+
+These are headless Windows Chrome checks on one PC. Native saved-match restoration and shutdown flushing were verified separately from storage fixtures. The remaining gates below still apply. The GitHub Pages workflow checks/packages the release before publication; hosted acceptance is recorded separately.
+
 ## Version 2.0 acceptance
 
 - Version 1's exact working source/build snapshot passed every restored ZIP entry CRC and SHA-256; its Git bundle verified. `v1.0.0` preserves the committed baseline, and `VERSION_2.md` identifies the private snapshot and restore instructions.
