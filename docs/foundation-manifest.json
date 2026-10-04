@@ -1,0 +1,309 @@
+{
+  "sourceProject": "Online-Games",
+  "upstreamCommit": "3ccaa0e9af66889be183ca910851e881d47d437c",
+  "files": [
+    {
+      "path": "harness/bridge.js",
+      "bytes": 1086380,
+      "sha256": "8dcedb6fc7e6ed93da2719c41ad2cf5477013868518ed862df3cd7a9cf6f5df6"
+    },
+    {
+      "path": "harness/d3d8_executor.mjs",
+      "bytes": 695187,
+      "sha256": "27006ef225fed877ea8c726b42ac1bbf2462af0522af887e7b309c2fa427b535"
+    },
+    {
+      "path": "harness/shader-tier-config.mjs",
+      "bytes": 884,
+      "sha256": "0e9751201f4d79cd5999ca788e2781beb8c543314339e6979f63783ba5acce90"
+    },
+    {
+      "path": "harness/bink_runtime.mjs",
+      "bytes": 18476,
+      "sha256": "067c11cc730d174fc693f80660d4440da014df9df63ce4e65419f14ecea664ba"
+    },
+    {
+      "path": "harness/bink_decoder.mjs",
+      "bytes": 5065,
+      "sha256": "49702675c95d7a3cf65100e34002841f06c289bc69e4bbbb3a03189587d08e08"
+    },
+    {
+      "path": "harness/bink_direct_runtime.mjs",
+      "bytes": 13974,
+      "sha256": "756b81e2d35de59ab8cc7acf4f86c5de67fd27cadbfe2b659372007c57217a74"
+    },
+    {
+      "path": "harness/bink_decode_worker.mjs",
+      "bytes": 6434,
+      "sha256": "44073b7402a16e8407079c53f015b1aebe2f8190f26bf17ff63d5afa75c82dc3"
+    },
+    {
+      "path": "harness/gdi_executor.mjs",
+      "bytes": 5136,
+      "sha256": "b2c9f9e8eb4d6a9fd6f741e3bb243379f7e2bc3d51567789d18730e6241924a9"
+    },
+    {
+      "path": "harness/custom-map-store.mjs",
+      "bytes": 13623,
+      "sha256": "379e1f02a5789a896883b7c72f07ed78ca834c212db52d76b01c7154b2c390a7"
+    },
+    {
+      "path": "harness/game-data-store.mjs",
+      "bytes": 8295,
+      "sha256": "e43cc7e79fea61db2bd16d4be4b046df8c862bdcb5e6a828e777be565b3be7fc"
+    },
+    {
+      "path": "harness/mod-context.mjs",
+      "bytes": 9882,
+      "sha256": "81abe0ec1b97aed98511308ce9cf097e6cfae54e262ffc7bdde616671b29bdbf"
+    },
+    {
+      "path": "harness/mod-package-format.mjs",
+      "bytes": 13915,
+      "sha256": "bea25da497ec10b8ecd1b8aa6aa5f400338e61e1f038af88c99eb89f02d1d4bd"
+    },
+    {
+      "path": "harness/custom-map-package-format.mjs",
+      "bytes": 6411,
+      "sha256": "b261098862fda5784c0a75ed9f4849ab523219c5d9a5b9b3e0287c380b15ddbb"
+    },
+    {
+      "path": "harness/cursor-style-config.mjs",
+      "bytes": 655,
+      "sha256": "fef011c32cdb9095e3485f143872575759fb872f8097d577bccd73ad09215f88"
+    },
+    {
+      "path": "harness/save-persistence-coordinator.mjs",
+      "bytes": 1902,
+      "sha256": "f661a30706f4534149c6e4c0c57caa918c154045454408c256e104349599bd3c"
+    },
+    {
+      "path": "harness/replay-file-store.mjs",
+      "bytes": 5145,
+      "sha256": "0da368e9c73b8dc364886873f819eb790177037391faa10c440a2c69671d296a"
+    },
+    {
+      "path": "harness/transfer-user-data-store.mjs",
+      "bytes": 9480,
+      "sha256": "ad101284894b2f6edcecb0e146d939317c54789343473517e877cb9e5bb77973"
+    },
+    {
+      "path": "harness/touch-controls.mjs",
+      "bytes": 31299,
+      "sha256": "2fffe0e00e7f0f3cc0ce0b49b706e2546261f854813dce4c17980b82a68d9627"
+    },
+    {
+      "path": "harness/webrtc-udp-endpoint.mjs",
+      "bytes": 28933,
+      "sha256": "3b6a6b69a27cfbd037acf9cb7ed2a8d812113aae832380024c2cdeb85d9baa6f"
+    },
+    {
+      "path": "harness/vendor/trystero-nostr.min.mjs",
+      "bytes": 59664,
+      "sha256": "40465b586d35d1f0fd4fe6d57f774fe9521f7b1cabb75deaf416ce55fdd19446"
+    },
+    {
+      "path": "harness/multiplayer-network-status.mjs",
+      "bytes": 4503,
+      "sha256": "f0386fccd4c01e3c21429cf3f2153335f551d701c980c2a5b9114edb21658344"
+    },
+    {
+      "path": "harness/network-diagnostics.mjs",
+      "bytes": 7510,
+      "sha256": "5ce08fbf832fefc0f231551cfd8e8fada405a0faf13ce42d2ea23f23b20c0b2a"
+    },
+    {
+      "path": "harness/udp_realm_bridge.mjs",
+      "bytes": 9472,
+      "sha256": "2adcca749c4c02791dc373704aa5fa1878b04a95f50353c3ae0bb6f816fa93c1"
+    },
+    {
+      "path": "harness/webxr-d3d8-command-stream.mjs",
+      "bytes": 9626,
+      "sha256": "1bf95a851d39e28523ec0422dcfac6ad1e478146fc30abfb6195b16866c1aa7d"
+    },
+    {
+      "path": "harness/webxr-d3d8-renderer.mjs",
+      "bytes": 41884,
+      "sha256": "b8b988b71d361ba53b529c1d7c5425c347f0ce007bf2706e1fc05c56ede5acaf"
+    },
+    {
+      "path": "harness/webxr-controls.mjs",
+      "bytes": 28438,
+      "sha256": "c0841b0c81c856c40fc85d72a1be964f9ad6ed57881fff7146ed31bff316fdc3"
+    },
+    {
+      "path": "harness/webxr-settings.mjs",
+      "bytes": 2886,
+      "sha256": "ad6bbd3de7db9a91e1e3ac53509bf36f1c280175edbebe7ee6f7e164f39be482"
+    },
+    {
+      "path": "harness/engine_realm_boot.mjs",
+      "bytes": 64214,
+      "sha256": "0127d36c72e8381f124e583d2e55b00e1eea496fc57d71bb90063de0c41662a1"
+    },
+    {
+      "path": "harness/opfs_realm_files.mjs",
+      "bytes": 10236,
+      "sha256": "3cc190703cfab2139483046e22d0793f4e2fff0d738eacfe2e3d01c890adaad7"
+    },
+    {
+      "path": "harness/io_worker.mjs",
+      "bytes": 13876,
+      "sha256": "18b19a2f98b149cc3bd9fecc1c37fda74a31b9992ee20fb6ca48830ff7084b39"
+    },
+    {
+      "path": "harness/agent_bridge.mjs",
+      "bytes": 28097,
+      "sha256": "68a1ece0ed34594c3c56138c8a71dc628c2a62e7728eecf0db997f85df0d2cfb"
+    },
+    {
+      "path": "harness/agent-bridge-config.mjs",
+      "bytes": 4562,
+      "sha256": "a7f94e94b310a7038cf4edd4a105640c03865d11c4ee6827a577bb1eeb58e3be"
+    },
+    {
+      "path": "harness/agent-webrtc-transport.mjs",
+      "bytes": 8656,
+      "sha256": "d79568d6ab0635b7c806048fa0a35070d20cdbc22432350421d0bd9ea8f51782"
+    },
+    {
+      "path": "harness/webxr-runtime.mjs",
+      "bytes": 15859,
+      "sha256": "bc5db40b03d0f39de1a5f0a3723e6916ab5608a71296217cb85b7b20d3fb203d"
+    },
+    {
+      "path": "harness/launcher-asset-manager.mjs",
+      "bytes": 41322,
+      "sha256": "667ad954eea6d0fb1f13d04e69dfc1a5f9aa40a1abf8e4e9da6e25735f759890"
+    },
+    {
+      "path": "harness/archive-transfer-validation.mjs",
+      "bytes": 1238,
+      "sha256": "7182a4fd5b84cb885a0fd29446e72c26dd14acbf04f6430a78a503bdc33c6dc8"
+    },
+    {
+      "path": "harness/launcher-archive-specs.js",
+      "bytes": 4458,
+      "sha256": "239dbc08b27b1033f1d5f81f0b659ec09c66892e44463327bf88133ed77ff6ee"
+    },
+    {
+      "path": "harness/launcher-retail-presentation.mjs",
+      "bytes": 19019,
+      "sha256": "c5d095ad5019362e3fe15d7bb640b13da32f78a22ce67d5727b84827d8cecd85"
+    },
+    {
+      "path": "harness/original-cursor-assets.mjs",
+      "bytes": 13675,
+      "sha256": "c2844db503e8df143c9775a62bce2d89faca3b3178bdd5cc7058d62e647c6e78"
+    },
+    {
+      "path": "harness/device-transfer-protocol.mjs",
+      "bytes": 5351,
+      "sha256": "aaa18a49a83c62d3f654db35b515f43c3abead46de5cb2506a46245705e66e86"
+    },
+    {
+      "path": "harness/launcher-file-collector.mjs",
+      "bytes": 2064,
+      "sha256": "c584e18abdcaf0c8a2faea5ca5faef4114abb02ddaca7e79f986779700340d61"
+    },
+    {
+      "path": "harness/launcher-asset-worker.js",
+      "bytes": 49870,
+      "sha256": "4933e04c17b474da7cb0402dbb303e56a887c86846500c2972c67e6fc7262c6b"
+    },
+    {
+      "path": "harness/vendor/pako.es5.min.js",
+      "bytes": 47282,
+      "sha256": "db7884b4efed9372efac6fda021309a4a4c441148ddeaac3ab5f034c3aebeb2d"
+    },
+    {
+      "path": "harness/launcher-backup-zip.mjs",
+      "bytes": 3792,
+      "sha256": "d6c3e14c17a520cbd9dcc14e3b28594bc489aa76f810483afc719dbf6228c077"
+    },
+    {
+      "path": "harness/runtime-shutdown-sequence.mjs",
+      "bytes": 4875,
+      "sha256": "248c718943c019e4c6a61be81e5c7a79a2cac4f3e54b29e744e26f2450d93065"
+    },
+    {
+      "path": "harness/multiplayer_identity.mjs",
+      "bytes": 4052,
+      "sha256": "1fab5c10bf561d54641e54e9359c072f7416f40d75c5ea5bebd613a1b7184e75"
+    },
+    {
+      "path": "harness/vendor/trystero-LICENSE.txt",
+      "bytes": 1060,
+      "sha256": "e629f053669ceb04737f48da14fe5c711b8bd423cda686889725006011326d77"
+    },
+    {
+      "path": "harness/vendor/pako-LICENSE.txt",
+      "bytes": 1104,
+      "sha256": "a04665b3b2de56c66730c1f720f528175739e4104f79073614aa611da1e85539"
+    },
+    {
+      "path": "harness/vendor/seek-bzip-LICENSE.txt",
+      "bytes": 1120,
+      "sha256": "55dc6a336e0797a4aec8d21e1a31fb44d145381d9f930382931cd46557e524c3"
+    },
+    {
+      "path": "harness/vendor/cicdec-LICENSE.txt",
+      "bytes": 1530,
+      "sha256": "5345f7300cfc1ed415cf52beed18c367db1fd804ef1181105e72273fc28df746"
+    },
+    {
+      "path": "harness/vendor/noble-secp256k1-LICENSE.txt",
+      "bytes": 1110,
+      "sha256": "80e49272a4c81b0ded274b540d2b8089bd5f4d7d4fe1f2df309d463d7067c9c4"
+    },
+    {
+      "path": "dist-threaded-release/cnc-port.js",
+      "bytes": 268991,
+      "sha256": "6c675d3b14267a6efcf3052748b115b2b9d3e96ffd3b46e0110d5ca27ebd7f15"
+    },
+    {
+      "path": "dist-threaded-release/cnc-port.wasm",
+      "bytes": 8109038,
+      "sha256": "0b9ad4439b8e10c7f34bdcd6fc235f2d8f915362da6e0371f4a497ee8b4ef34d"
+    },
+    {
+      "path": "dist-threaded-release/cnc-port.worker.js",
+      "bytes": 2219,
+      "sha256": "a8982fbc8dcdd4c377f0bd4fee836ef6b6adba8159573383b4dd90cd10ba5bbe"
+    },
+    {
+      "path": "LICENSE.md",
+      "bytes": 37308,
+      "sha256": "449838bc0bc00c5f7a4f9b665d4e13dc5656b9c3b025011edc42b4533d5463c0"
+    },
+    {
+      "path": "source/NewShoes-source.zip.part01",
+      "bytes": 16777216,
+      "sha256": "c711fdf5d490a6563a6de175ddbe8083acdb9932ba0bfa540061be6853e7ca95",
+      "publishedSha256": "64cd4f25ff59b74f6911b42a612b21c07cfd1cf2808841010d4f381451c29c78",
+      "publishedBytes": 13718763
+    },
+    {
+      "path": "source/NewShoes-source.zip.part02",
+      "bytes": 11850543,
+      "sha256": "07ff5f16596ca87374e8be0022d73cab9ec00f5ee8a17032553a5cb1870af07e",
+      "publishedSha256": "0608e44793424d8997cfa4d7b0e4d0f994c6f84633f1b610aa67d4013bdb25a6",
+      "publishedBytes": 13718762
+    }
+  ],
+  "sourceArchive": {
+    "originalSha256": "91dfb4dc739bd3b36bc893730d1f09eccda82143fbfd34dad6ae41b10739095e",
+    "publishedSha256": "d3c80a1b797c0f264ccd274208c6f33fcf6a5a9f48a87793abc87174aa896fe5",
+    "excludedWindowsBinaries": [
+      "NewShoes-main/Generals/Code/Tools/wolSetup/WOLAPI/wolapi.dll",
+      "NewShoes-main/Generals/Code/Tools/wolSetup/WOLAPI/woldbg.dll",
+      "NewShoes-main/Generals/Run/BrowserEngine.dll",
+      "NewShoes-main/GeneralsMD/Code/Libraries/Source/WWVegas/wwshade/shdpp.exe",
+      "NewShoes-main/GeneralsMD/Code/Tools/wolSetup/WOLAPI/wolapi.dll",
+      "NewShoes-main/GeneralsMD/Code/Tools/wolSetup/WOLAPI/woldbg.dll",
+      "NewShoes-main/GeneralsMD/Run/BrowserEngine.dll"
+    ],
+    "reason": "Unused Windows DLLs and legacy shader compiler; no browser build source removed."
+  }
+}

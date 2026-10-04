@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.wasm -text
+*.woff2 -text
+*.zip -text
+*.part01 -text
+*.part02 -text
+public/dist-threaded-release/* -text

@@ -1,0 +1,12 @@
+.git
+.local
+node_modules
+output
+release
+*.big
+*.bik
+*.sav
+*.rep
+*.exe
+*.dll
+.env*
