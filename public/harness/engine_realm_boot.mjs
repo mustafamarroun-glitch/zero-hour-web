@@ -36,7 +36,7 @@
 // worker has wasm instantiated but no thread stack/TLS established — calls
 // would scribble over the main thread's stack). Everything wasm-touching is
 // queued until the first main-loop tick arrives ("live").
-
+import './storage-scope.js';
 import { createD3D8Executor } from "./d3d8_executor.mjs";
 import { createGdiHooks } from "./gdi_executor.mjs";
 import {

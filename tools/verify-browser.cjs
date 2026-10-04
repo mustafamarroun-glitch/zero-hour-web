@@ -22,7 +22,7 @@ const path=require('node:path');
   report.library=await page.evaluate(()=>window.ZeroHAssetLibrary.summary());
   await page.reload();await page.locator('#lobby').waitFor({state:'visible',timeout:30000});report.checks.push('Username and installed library restore after reload');
   report.stage='Engine boot';await page.locator('#solo').click();
-  const frame=page.frameLocator('#gameFrame');await frame.locator('#loading').waitFor({state:'hidden',timeout:180000});
+  await page.waitForFunction(()=>{const w=document.getElementById('gameFrame').contentWindow;return !!w?.CnCPort?.rpc&&w.document.getElementById('loading')?.hidden===true},null,{timeout:180000});
   const game=page.frames().find(f=>f.url().includes('/harness/game.html'));
   report.init=await game.evaluate(()=>window.CnCPort.rpc('threadedStatus'));
   report.checks.push('Actual compiled threaded engine initialized');

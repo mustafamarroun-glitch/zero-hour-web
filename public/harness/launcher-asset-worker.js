@@ -6,8 +6,8 @@
  * Microsoft Cabinet/MSZIP is the format used by the original Generals and
  * Zero Hour installer discs.
  */
-
 "use strict";
+importScripts('./storage-scope.js');
 
 importScripts("./launcher-archive-specs.js", "./vendor/pako.es5.min.js");
 

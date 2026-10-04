@@ -17,9 +17,9 @@ Free development option: Cloudflare Quick Tunnel can expose this project's local
 1. `npm run check`; ensure engine/source hashes and no retail/executable files in the package.
 2. `npm run package`; inspect the source ZIP and publication manifest.
 3. Commit only this project's source and allowlisted runtime; create a new repository. Do not reuse the old repository history or remote.
-4. Publish the separate HTTPS origin, verify isolation and relative-module loading, import actual archives there, and repeat a real skirmish.
+4. Publish the dedicated HTTPS site, verify isolation and relative-module loading, import actual archives there, and repeat a real skirmish. Same-account GitHub Pages sites share an origin; the dedicated storage namespace is tested separately.
 5. Test two browser sessions through public signaling; then complete a separate-device, separate-network match.
 
 The separate public repository is https://github.com/mustafamarroun-glitch/zero-hour-web. Its workflow checks and packages the allowlisted site before publishing through GitHub Pages. An existing Git Credential Manager account was verified and is used without storing tokens in this project. No paid service has been provisioned.
 
-The user explicitly approved a temporary Cloudflare endpoint for localhost:8095. Tunnel registration succeeded after selecting Cloudflare's resolved edge directly, but public HTTPS health requests have timed out, so availability has not yet passed. Do not infer a working multiplayer service from tunnel registration.
+The user explicitly approved a temporary Cloudflare endpoint for localhost:8095. Tunnel registration succeeded after selecting Cloudflare's resolved edge directly. Windows Chrome reached its public network configuration with HTTP 200; terminal health requests timed out. Public WebSocket signaling and actual multiplayer remain separate acceptance checks. The endpoint works only while this PC, service and tunnel remain running.

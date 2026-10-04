@@ -39,7 +39,7 @@
 //   { id, ok: true, kind, bytes: ArrayBuffer, byteLength, status }   // transferred
 //   { id, ok: true, kind: "progress", url, received, total }         // interim
 //   { id, ok: false, kind, error }
-
+import './storage-scope.js';
 const PROGRESS_POST_INTERVAL_MS = 250; // ~4 progress posts per second per archive
 
 // Walk an OPFS path like "cnc-assets/INIZH.big", creating intermediate

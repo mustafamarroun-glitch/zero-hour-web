@@ -1,3 +1,4 @@
+import './storage-scope.js';
 import {assetLibrary} from './launcher-asset-manager.mjs';
 const params=new URLSearchParams(location.search), name=params.get('commander');
 let ready=false;
@@ -43,7 +44,7 @@ export async function boot(){
   }catch(error){report(error.message);document.querySelector('#retry').hidden=false;parent.postMessage({type:'zh-error',message:error.message},location.origin)}
 }
 async function clickWhenReady(windowName){
-  const deadline=Date.now()+30000;
+  const deadline=Date.now()+60000;
   while(Date.now()<deadline){
     const query=await window.CnCPort.rpc('queryWindowByName',{name:windowName});
     const frame=await checked('realEngineFrame',{frames:1});
@@ -59,14 +60,15 @@ async function enterRoom(){
   await clickWhenReady('MainMenu.wnd:ButtonMultiplayer');
   await new Promise(r=>setTimeout(r,1500));
   await clickWhenReady('MainMenu.wnd:ButtonNetwork');
-  const deadline=Date.now()+30000;let lan;
+  const deadline=Date.now()+60000;let lan;
   while(Date.now()<deadline){lan=(await checked('realEngineLanState')).lan;if(lan?.lanReady&&lan.localIp)break;await new Promise(r=>setTimeout(r,400));}
   if(!lan?.localIp)throw Error('Game transport did not obtain a virtual LAN address. Exit and reconnect.');
   await checked('realEngineLanCommand',{action:'setName',value:name});
   if(params.get('host')==='1')await checked('realEngineLanCommand',{action:'host',value:`ZH ${params.get('room')}`});
   else{
     let joined=false;
-    while(Date.now()<deadline){const state=(await checked('realEngineLanState')).lan;if(state?.discoveredGames>0){await checked('realEngineLanCommand',{action:'joinFirst'});joined=true;break;}await new Promise(r=>setTimeout(r,600));}
+    const discoveryDeadline=Date.now()+120000;
+    while(Date.now()<discoveryDeadline){const state=(await checked('realEngineLanState')).lan;if(state?.discoveredGames>0){await checked('realEngineLanCommand',{action:'joinFirst'});joined=true;break;}await new Promise(r=>setTimeout(r,600));}
     if(!joined)throw Error('Host game was not discovered. Ask the host to enter the game room, then exit and retry.');
   }
   const maps=await checked('mapCacheProbe');

@@ -1,6 +1,6 @@
 # Zero Hour Web
 
-Standalone Generals Zero Hour browser interface using the real New Shoes threaded engine. This is a separate project, repository and browser origin. Online-Games is a read-only technical reference and remains untouched.
+Standalone Generals Zero Hour browser interface using the real New Shoes threaded engine. This is a separate project and repository. Online-Games is a read-only technical reference and remains untouched. GitHub Pages repositories on the same account share a browser origin; this product uses its own storage namespace for identity, imports, engine preferences and saves.
 
 ## Start
 
@@ -9,6 +9,8 @@ Install Node.js 22 or newer, then run `npm ci` and `npm start`. Open **http://lo
 Enter a 2–12 character commander name, select the original installation's Data folder, and wait for validation and browser-local installation. The inspected combined English profile requires 17 real archives. Import reads your files; it never uploads or modifies the installation. The folder-input fallback works without `showDirectoryPicker`. ZIP exports must be extracted before importing.
 
 The game opens directly into skirmish options. The website name is passed into engine initialization and the native skirmish field. Guest IDs are generated independently of display names. Names are not authenticated accounts. Browser storage must be enabled; private profiles are unsuitable for persistent large installations.
+
+The published site starts with a fresh library rather than adopting another product's files. Import again or extract a local ZIP backup. Browser-wide clearing of this GitHub Pages origin removes every product's data, so back up each library first. A separate browser profile or dedicated hostname provides stronger separation of quota and site-wide clearing.
 
 ## Verification and release
 

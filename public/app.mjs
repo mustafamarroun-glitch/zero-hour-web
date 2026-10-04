@@ -1,4 +1,5 @@
 import './isolation.mjs';
+import './harness/storage-scope.js';
 import {assetLibrary} from './harness/launcher-asset-manager.mjs';
 import {buildArchiveZip} from './harness/launcher-backup-zip.mjs';
 const $=id=>document.getElementById(id), key='zhweb-identity-v1';

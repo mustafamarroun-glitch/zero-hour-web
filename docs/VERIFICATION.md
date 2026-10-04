@@ -16,6 +16,7 @@ Updated 2026-10-04. The source project's earlier results are context only; the f
 - Website map, faction, color, team, ready and start controls reached original native callbacks and synchronized between the two engines. Both loaded real LAN battlefields.
 - The subsequent original movement order was accepted but the worker did not move within 120 seconds. Sustained synchronization has NOT passed. Later launches also intermittently failed to finish native lobby entry; diagnostics and recovery work remain ongoing.
 - Headerless static hosting at `/zero-hour-web/` passed service-worker isolation, SharedArrayBuffer availability, relative module loading and commander restoration in a fresh Chrome profile.
+- The dedicated OPFS directory and storage-key namespace passed a shared-origin preservation check: another product's directory remains intact, its keys are hidden from this product, and scoped clearing preserves its original value.
 - Upstream source ZIP contents were inspected. Seven unused Windows DLL/compiler binaries were excluded from the public source copy; 7,527 source entries and original notices remain. Checks verify published source hashes, runtime hashes and ZIP entry boundaries.
 
 Initial failures were corrected: the loading overlay's author CSS overrode `hidden`; native menu activation raced transitions; the verifier initially checked the wrong gameplay-state field and raced iframe navigation. These are recorded separately from engine failures.
