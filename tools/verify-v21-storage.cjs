@@ -1,9 +1,10 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 // Isolated, small storage fixtures. Gameplay is verified separately with retail files.
 const {chromium}=require('playwright');
 const fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict');
-(async()=>{
+runBrowserTest(async()=>{
   const report={checks:[],errors:[],started:new Date().toISOString()};
-  const context=await chromium.launchPersistentContext(path.resolve('.local/v21-storage-browser'),{channel:'chrome',headless:true,viewport:{width:1440,height:900}});
+  const context=await launchTestContext(chromium,path.resolve('.local/v21-storage-browser'),{channel:'chrome',headless:true,viewport:{width:1440,height:900}});
   const page=context.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));
   try{
     await page.goto('http://localhost:8094/');await page.waitForFunction(()=>!!window.ZeroHAssetLibrary);
@@ -60,4 +61,4 @@ const fs=require('node:fs/promises'),path=require('node:path'),assert=require('n
     assert.deepEqual(report.errors,[]);report.passed=true;
   }catch(error){report.failure=error.stack;process.exitCode=1;}
   finally{await fs.writeFile('.local/version-21-storage-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await context.close();}
-})();
+});

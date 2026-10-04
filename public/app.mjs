@@ -1,87 +1,109 @@
 import './isolation.mjs';
 import './harness/storage-scope.js';
-import {assetLibrary} from './harness/launcher-asset-manager.mjs';
-import {buildArchiveZip} from './harness/launcher-backup-zip.mjs';
+import {PROFILES} from './game-profiles.mjs';
+import {buildArchiveZip,buildFileZip} from './harness/launcher-backup-zip.mjs';
 import {extractGameArchive,cleanArchiveStaging} from './harness/archive-import.mjs';
 import {VERSION,DEFAULTS,loadPreferences,savePreferences,resolutionSize} from './preferences.mjs';
 import {diagnosticReport,recordError} from './diagnostics.mjs';
 const $=id=>document.getElementById(id), key='zhweb-identity-v1';
+const profile=PROFILES[document.documentElement.dataset.game]||PROFILES['zero-hour'],isYuri=profile.id==='yuri';
+const {assetLibrary}=await import(isYuri?'./yuri/library.mjs':'./harness/launcher-asset-manager.mjs');
 let identity,installed=false,importing=false,importController,backupController,zipUrl,roomSocket,roomState,connecting=false,gameReady=false,inMatch=false,hideTimer,resizeTimer,confirmCallback;
-let preferences=loadPreferences();
+let preferences=loadPreferences(profile.id),releaseGameFiles,restoreTask=Promise.resolve();
 let libraryBusy=false,launching=false,exiting=false,exitTimer,forceExitTimer,diagnosticRequest;
 try{identity=JSON.parse(localStorage.getItem(key)||'null')}catch{}
 const error=message=>{recordError(message);$('error').textContent=message;$('error').hidden=!message};
 function view(id){for(const name of ['entry','setup','lobby','room'])$(name).hidden=name!==id;error('')}
 function progress(p){const stage=p.phase==='scan'?'Validating files':p.phase==='prepare'?'Saving game files':p.phase||'Processing local files';$('installProgress').textContent=`${stage}${p.detail?`: ${p.detail}`:''}`;$('progress').hidden=false;const total=p.totalBytes||p.total;const completed=p.completedBytes||p.completed||0;if(total)$('progress').value=completed/total;else $('progress').removeAttribute('value')}
 function restoreIdentity(){if(identity?.name){$('commander').textContent=identity.name;document.querySelector('.identity').hidden=false;return true}return false}
-async function restore(){
+function restore(){return restoreTask=restoreLibrary()}
+async function restoreLibrary(){
   if(!restoreIdentity()){view('entry');return;}
   view('setup');
   try{installed=!!await assetLibrary.verifyInstalledLibrary();if(installed){await assetLibrary.archivesForLaunch();showLobby()}else if(assetLibrary.lastValidationError)error(assetLibrary.lastValidationError)}catch(e){error(`Installed files could not be restored: ${e.message}. Import your folder again.`)}
 }
-function showLobby(){view('lobby');$('librarySummary').textContent=`Local installation ready · ${assetLibrary.installedLibrary()?.archives.length||0} validated archives · ${assetLibrary.summary().formattedBytes}`;updateStorage();const invite=new URLSearchParams(location.search).get('room');if(invite){$('roomCode').value=invite;$('joinForm').requestSubmit()}}
+function showLobby(){view('lobby');$('librarySummary').textContent=`Local installation ready · ${assetLibrary.installedLibrary()?.archives.length||0} validated ${isYuri?'files':'archives'} · ${assetLibrary.summary().formattedBytes}`;updateStorage();const invite=new URLSearchParams(location.search).get('room');if(invite){$('roomCode').value=invite;$('joinForm').requestSubmit()}}
 $('nameForm').onsubmit=e=>{e.preventDefault();const name=$('name').value.trim();if(!/^[A-Za-z0-9 _-]{2,12}$/.test(name)){error('Use 2–12 letters, numbers, spaces, underscores or hyphens.');return;}identity={name,guest:identity?.guest||crypto.randomUUID()};try{localStorage.setItem(key,JSON.stringify(identity))}catch{error('Browser storage is unavailable. Allow site storage to remember your commander name.');return;}restore()};
 $('changeName').onclick=()=>{if(roomSocket){error('Leave your room before changing your commander name.');return;}$('name').value=identity?.name||'';view('entry');$('name').focus()};
 async function importFiles(files,archive=false){
   if(importing||!files.length)return;
-  if(libraryBusy||launching||!$('gameView').hidden){error('Wait for the current file operation or exit the game before importing.');return;}
+  if(libraryBusy||launching||$('exportLibrary').disabled||!$('gameView').hidden){error('Wait for the current file operation or exit the game before importing.');return;}
   importing=true;importController=new AbortController();const controller=importController;let extracted;
   error('');$('cancelImport').hidden=false;for(const id of ['chooseFolder','chooseFiles','chooseArchive','backToLibrary'])$(id).disabled=true;
   try{
-    if(archive){extracted=await extractGameArchive(files[0],{signal:controller.signal,onProgress:progress});files=extracted.files;}
+    await restoreTask;
+    if(archive){extracted=await extractGameArchive(files[0],{signal:controller.signal,onProgress:progress,profile:profile.archiveProfile});files=extracted.files;}
     controller.signal.throwIfAborted();
-    const scan=await assetLibrary.scan(files,{onProgress:progress});
+    const scan=await assetLibrary.scan(files,{onProgress:progress,signal:controller.signal});
     controller.signal.throwIfAborted();
     if(!scan.ok)throw Error(scan.error||scan.detail||`Missing required files: ${(scan.missing||scan.missingArchives||[]).map(v=>v.name||v).join(', ')}`);
     const result=await assetLibrary.prepare('install',progress,{signal:controller.signal});installed=true;$('cancelImport').disabled=true;
     progress({phase:'Finishing installation',detail:'Cleaning temporary extraction files'});
     await extracted?.dispose().catch(e=>recordError(`Temporary extraction cleanup: ${e.message}`));extracted=null;showLobby();if(result.warning)$('backupStatus').textContent=result.warning.message;
-  }catch(e){installed=!!assetLibrary.installedLibrary();$('backToLibrary').hidden=!installed;error(controller.signal.aborted?'Import cancelled. Your previous installation is preserved.':`${e.message}. Select a complete compatible Data folder and retry.`);}
+  }catch(e){installed=!!assetLibrary.installedLibrary();$('backToLibrary').hidden=!installed;error(controller.signal.aborted?'Import cancelled. Your previous installation is preserved.':`${e.message}. Select a complete compatible ${isYuri?'Yuri game':'Data'} folder and retry.`);}
   finally{await extracted?.dispose().catch(()=>{});importing=false;importController=null;$('cancelImport').hidden=true;$('cancelImport').disabled=false;$('progress').hidden=true;for(const id of ['chooseFolder','chooseFiles','chooseArchive','backToLibrary'])$(id).disabled=false;$('folderInput').value=$('fileInput').value=$('archiveInput').value='';}
 }
 $('chooseFolder').onclick=()=> $('folderInput').click();$('chooseFiles').onclick=()=>$('fileInput').click();
 $('folderInput').onchange=e=>importFiles([...e.target.files]);$('fileInput').onchange=e=>importFiles([...e.target.files]);
 $('chooseArchive').onclick=()=>$('archiveInput').click();$('archiveInput').onchange=e=>importFiles([...e.target.files],true);
+// Prevent a dropped local archive navigating away from the installation flow.
+const dropZone=$('importDrop');let dragDepth=0;
+document.addEventListener('dragover',event=>{if(event.dataTransfer?.types.includes('Files'))event.preventDefault()});
+dropZone.addEventListener('dragenter',event=>{if(event.dataTransfer?.types.includes('Files')){event.preventDefault();dragDepth++;dropZone.classList.add('dragging')}});
+dropZone.addEventListener('dragleave',()=>{if(--dragDepth<=0){dragDepth=0;dropZone.classList.remove('dragging')}});
+document.addEventListener('drop',event=>{
+  if(!event.dataTransfer?.types.includes('Files'))return;event.preventDefault();dragDepth=0;dropZone.classList.remove('dragging');
+  if(!dropZone.contains(event.target)||$('setup').hidden){error('Open Import another installation, then drop a ZIP or RAR in the installation area.');return;}
+  const items=[...event.dataTransfer.items];if(items.some(item=>item.webkitGetAsEntry?.()?.isDirectory)){error('For folders, use Choose game folder. You can drop a ZIP or RAR here.');return;}
+  const files=[...event.dataTransfer.files],archives=files.filter(file=>/\.(zip|rar)$/i.test(file.name));
+  if(archives.length&&(files.length!==1||archives.length!==1)){error('Choose one ZIP or RAR at a time. Your installed game is kept.');return;}
+  importFiles(files,archives.length===1);
+});
 $('cancelImport').onclick=()=>{if(!importing)return;importController?.abort();assetLibrary.recoverWorker(assetLibrary.worker,'Import cancelled');$('cancelImport').disabled=true;error('Cancelling import…');};
 $('replaceLibrary').onclick=$('settingsReplaceLibrary').onclick=()=>{try{if(libraryBusy)throw Error('Wait for the current file check to finish.');assertLibraryIdle();$('settings').close();view('setup');$('backToLibrary').hidden=!installed}catch(e){$('settingsStorageStatus').textContent=e.message;error(e.message)}};
 $('backToLibrary').onclick=()=>restore();
+async function installedFiles(){
+  if(assetLibrary.filesForBackup)return assetLibrary.filesForBackup();
+  const entries=[];for(const archive of assetLibrary.installedLibrary().archives){let dir=await navigator.storage.getDirectory();const parts=archive.opfsPath.split('/');const name=parts.pop();for(const part of parts)dir=await dir.getDirectoryHandle(part);entries.push({name:archive.name,file:await(await dir.getFileHandle(name)).getFile()});}return entries;
+}
 $('exportLibrary').onclick=async()=>{
   backupController=new AbortController();$('exportLibrary').disabled=true;$('cancelBackup').hidden=false;$('saveZip').hidden=true;error('');
-  try{const entries=[];for(const archive of assetLibrary.installedLibrary().archives){let dir=await navigator.storage.getDirectory();const parts=archive.opfsPath.split('/');const name=parts.pop();for(const part of parts)dir=await dir.getDirectoryHandle(part);entries.push({name:archive.name,file:await(await dir.getFileHandle(name)).getFile()});}const result=await buildArchiveZip(entries,{signal:backupController.signal,onProgress:p=>{$('backupStatus').textContent=p.detail||`Preparing ${p.name||'backup'}…`;}});if(zipUrl)URL.revokeObjectURL(zipUrl);zipUrl=URL.createObjectURL(result.blob||result);$('saveZip').href=zipUrl;$('saveZip').hidden=false;$('backupStatus').textContent='Backup ready. Save ZIP and import it directly into Version 2. Original cursor art and saved matches are not included in this game-archive backup.';}catch(e){error(e.message)}finally{$('exportLibrary').disabled=false;$('cancelBackup').hidden=true;}
+  try{const entries=await installedFiles();const result=await (isYuri?buildFileZip:buildArchiveZip)(entries,{signal:backupController.signal,onProgress:p=>{$('backupStatus').textContent=p.detail||`Preparing ${p.name||'backup'}…`;}});if(zipUrl)URL.revokeObjectURL(zipUrl);zipUrl=URL.createObjectURL(result.blob||result);$('saveZip').href=zipUrl;$('saveZip').hidden=false;$('backupStatus').textContent=isYuri?'Backup ready. Save ZIP and import it directly into the website. Stored saves are kept separately.':'Backup ready. Save ZIP and import it directly into Version 2. Original cursor art and saved matches are not included in this game-archive backup.';}catch(e){error(e.message)}finally{$('exportLibrary').disabled=false;$('cancelBackup').hidden=true;}
 };$('cancelBackup').onclick=()=>backupController?.abort();
 async function launch(room){
-  error('');if(!installed||!$('gameView').hidden||libraryBusy||launching)return;
+  error('');if(!installed||!$('gameView').hidden||libraryBusy||launching||importing||$('exportLibrary').disabled)return;
   launching=true;
   $('solo').disabled=$('roomLaunch').disabled=true;
   try{
     $('librarySummary').textContent='Checking installed files before launch…';
     if(!await assetLibrary.verifyInstalledLibrary())throw Error(assetLibrary.lastValidationError||'Installed files are missing. Import a complete game again.');
     await assetLibrary.archivesForLaunch();
-    const url=new URL('./harness/game.html',location.href);url.searchParams.set('commander',identity.name);url.searchParams.set('shaderTier',preferences.graphics);const size=currentResolution();url.searchParams.set('width',size.width);url.searchParams.set('height',size.height);
+    const url=new URL(isYuri?'./yuri/play.html':'./harness/game.html',import.meta.url);url.searchParams.set('commander',identity.name);url.searchParams.set('shaderTier',preferences.graphics);const size=currentResolution();url.searchParams.set('width',size.width);url.searchParams.set('height',size.height);
+    if(isYuri){await assetLibrary.configureForLaunch(preferences,identity.name);releaseGameFiles=await assetLibrary.holdForGame();url.searchParams.set('settings',JSON.stringify(preferences));if(room)url.searchParams.set('session',room.relayCode);}
     if(room){url.searchParams.set('room',room.code);url.searchParams.set('guest',identity.guest);url.searchParams.set('host',room.players.find(p=>p.name===identity.name)?.host?'1':'0');}
-    gameReady=false;inMatch=false;$('gameName').textContent=identity.name;$('gameStatus').textContent='Restoring local files…';$('gameFrame').src=url.href;$('gameView').hidden=false;document.body.classList.add('playing');setToolbar(true);
-  }catch(e){installed=!!assetLibrary.installedLibrary();if(!installed){view('setup');$('backToLibrary').hidden=true}error(e.message)}finally{launching=false;$('solo').disabled=false;$('roomLaunch').disabled=!!roomState&&!roomState.compatible}
+    gameReady=false;inMatch=false;$('gameName').textContent=identity.name;$('gameStatus').textContent='Restoring local files…';$('gameFrame').src=url.href;$('gameView').hidden=false;document.body.classList.add('playing');document.querySelector('header').inert=document.querySelector('main').inert=document.querySelector('footer').inert=true;setToolbar(true);$('gameFrame').focus();
+  }catch(e){await releaseGameFiles?.();releaseGameFiles=null;installed=!!assetLibrary.installedLibrary();if(!installed){view('setup');$('backToLibrary').hidden=true}error(e.message)}finally{launching=false;$('solo').disabled=false;$('roomLaunch').disabled=!!roomState&&!roomState.compatible}
 }
 $('solo').onclick=()=>launch();
-$('exitGame').onclick=()=>{if(inMatch)confirmAction('Exit this match?','Your current match will end. The engine will flush local saves before closing.','Exit game',exitGame);else exitGame()};
+$('exitGame').onclick=()=>{if(isYuri||inMatch)confirmAction('Exit this match?',isYuri?'Save inside Yuri first. This closes the game session. Installed files and committed saves are kept.':'Your current match will end. The engine will flush local saves before closing.','Exit game',exitGame);else exitGame()};
 function watchExit(){if(exiting)return;exiting=true;setToolbar(true);$('exitGame').disabled=true;$('gameStatus').textContent='Saving and shutting down…';forceExitTimer=setTimeout(()=>{$('forceExit').hidden=false;$('gameStatus').textContent='Shutdown is taking longer. You can wait or force close.'},12000);exitTimer=setTimeout(()=>closeGame('Game force-closed after shutdown timed out. The latest save could not be confirmed.'),60000)}
-function exitGame(){watchExit();postGame({type:'zh-exit'})}
-function closeGame(warning){clearTimeout(exitTimer);clearTimeout(forceExitTimer);clearTimeout(hideTimer);exiting=false;gameReady=false;inMatch=false;$('settings').close();$('help').close();$('confirmAction').close();$('gameFrame').src='about:blank';$('gameView').hidden=true;document.body.classList.remove('playing');$('matchControls').hidden=true;$('matchControls').replaceChildren();$('exitGame').disabled=false;$('forceExit').hidden=true;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});if(warning)error(warning);else $('maintenanceStatus').textContent='Game closed. Your installed files are ready for another launch.';$('solo').focus();}
+function exitGame(){if(isYuri){closeGame();return}watchExit();postGame({type:'zh-exit'})}
+function closeGame(warning){clearTimeout(exitTimer);clearTimeout(forceExitTimer);clearTimeout(hideTimer);exiting=false;gameReady=false;inMatch=false;$('settings').close();$('help').close();$('confirmAction').close();$('gameFrame').src='about:blank';$('gameView').hidden=true;document.body.classList.remove('playing');document.querySelector('header').inert=document.querySelector('main').inert=document.querySelector('footer').inert=false;releaseGameFiles?.();releaseGameFiles=null;$('matchControls').hidden=true;$('matchControls').replaceChildren();$('exitGame').disabled=false;$('forceExit').hidden=true;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});if(warning)error(warning);else $('maintenanceStatus').textContent='Game closed. Your installed files are ready for another launch.';$('solo').focus();}
 $('forceExit').onclick=()=>confirmAction('Force close the game?','The latest save may not have finished writing. Previously stored saves and your installation will remain.','Force close',()=>closeGame('Game force-closed. The latest save could not be confirmed.'));
 $('fullscreen').onclick=toggleFullscreen;
 $('sound').oninput=()=>{preferences.effects=Number($('sound').value);syncPreferences();sendAudio()};
 $('diagnostics').onclick=()=>exportDiagnostics(false);
 $('graphics').onchange=()=>{preferences.graphics=$('graphics').value;syncPreferences();$('settingsStatus').textContent='Renderer change saved. It applies on your next launch.'};
-window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==$('gameFrame').contentWindow||$('gameView').hidden)return;const d=e.data;if(d.type==='zh-status'&&!exiting)$('gameStatus').textContent=d.message;if(d.type==='zh-ready'&&!exiting){$('gameStatus').textContent='Choose Single Player → Skirmish';if(roomState) $('gameStatus').textContent='Multiplayer → Anonymous (LAN): host creates, guest joins';}if(d.type==='zh-error'&&!exiting){recordError(d.message);$('gameStatus').textContent=d.message;$('exitGame').disabled=false;}if(d.type==='zh-exit-started')watchExit();if(d.type==='zh-exited')closeGame(d.warning);if(d.type==='zh-diagnostics')diagnosticRequest?.(d);});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==$('gameFrame').contentWindow||$('gameView').hidden)return;const d=e.data;if(d.type==='zh-status'&&!exiting)$('gameStatus').textContent=d.message;if(d.type==='zh-ready'&&!exiting){$('gameStatus').textContent='Choose Single Player → Skirmish';if(roomState) $('gameStatus').textContent=isYuri?'Network: host creates, guest joins':'Multiplayer → Anonymous (LAN): host creates, guest joins';}if(d.type==='zh-error'&&!exiting){recordError(d.message);$('gameStatus').textContent=d.message;$('exitGame').disabled=false;}if(d.type==='zh-exit-started')watchExit();if(d.type==='zh-exited')closeGame(d.warning);if(d.type==='zh-diagnostics')diagnosticRequest?.(d);});
 $('showHelp').onclick=()=>{if(!$('gameView').hidden)$('gameView').append($('help'));else document.body.append($('help'));$('help').showModal();postGame({type:'zh-input-neutral'})};$('closeHelp').onclick=()=>$('help').close();$('help').addEventListener('close',()=>postGame({type:'zh-focus'}));
 async function roomConnect(action,code){
-  if(connecting||roomSocket||libraryBusy||launching)return;
+  if(connecting||roomSocket||libraryBusy||launching||importing||$('exportLibrary').disabled)return;
   connecting=true;$('createRoom').disabled=true;$('joinForm').querySelector('button').disabled=true;
   try{
-  error('');const config=await fetch('./network-config.json').then(r=>{if(!r.ok)throw Error('Room service is unavailable. Solo skirmish remains available.');return r.json()});
+  error('');const config=await fetch(new URL('./network-config.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Room service is unavailable. Solo skirmish remains available.');return r.json()});
   if(!config.rooms||!config.signaling)throw Error('The multiplayer service is offline. Solo skirmish remains available.');
-  const content=await fingerprint();const url=new URL(config.rooms,location.href);if(url.protocol==='https:')url.protocol='wss:';else if(url.protocol==='http:')url.protocol='ws:';if(!['ws:','wss:'].includes(url.protocol))throw Error('The room service must use a WebSocket URL.');
-  roomSocket=new WebSocket(url);roomSocket.onopen=()=>roomSocket.send(JSON.stringify({action,code,name:identity.name,guest:identity.guest,content,runtime:config.runtime}));
+  const content=await fingerprint();const url=new URL(config.rooms,new URL('./',import.meta.url));if(url.protocol==='https:')url.protocol='wss:';else if(url.protocol==='http:')url.protocol='ws:';if(!['ws:','wss:'].includes(url.protocol))throw Error('The room service must use a WebSocket URL.');
+  roomSocket=new WebSocket(url);roomSocket.onopen=()=>roomSocket.send(JSON.stringify({action,code,name:identity.name,guest:identity.guest,content,runtime:isYuri?profile.runtime:config.runtime,game:profile.id}));
   roomSocket.onmessage=e=>{const msg=JSON.parse(e.data);if(msg.error){error(msg.error);roomSocket.close();roomSocket=null;return;}roomState=msg;view('room');$('roomTitle').textContent=msg.code;$('roomStatus').textContent=`${msg.players.length}/2 commanders connected to the room service`;$('players').replaceChildren(...msg.players.map(p=>{const li=document.createElement('li');const name=document.createElement('strong');name.textContent=p.name;const state=document.createElement('span');state.textContent=p.host?'Host':'Guest';li.append(name,state);return li}));$('compatibility').textContent=msg.compatible?'Runtime and content fingerprints match.':'Waiting for a second compatible installation.';$('roomLaunch').disabled=!msg.compatible;};
   roomSocket.onerror=()=>error('Could not connect to the room service. Check its URL and restart the service.');roomSocket.onclose=()=>{if(roomState)$('roomStatus').textContent='Room connection closed. Leave and reconnect before starting another game.';else roomSocket=null;};
   }finally{connecting=false;$('createRoom').disabled=false;$('joinForm').querySelector('button').disabled=false;}
@@ -91,9 +113,8 @@ async function fingerprint(){
   const cached=sessionStorage.getItem(cacheKey);if(cached)return cached;
   $('librarySummary').textContent='Checking complete archive fingerprints for multiplayer…';
   const hashes=[];
-  for(const archive of [...library.archives].sort((a,b)=>a.name.localeCompare(b.name))){
-    let dir=await navigator.storage.getDirectory();const parts=archive.opfsPath.split('/'),name=parts.pop();for(const part of parts)dir=await dir.getDirectoryHandle(part);
-    const file=await(await dir.getFileHandle(name)).getFile();const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+  for(const archive of (await installedFiles()).filter(e=>!isYuri||e.name!=='ra2md.ini').sort((a,b)=>a.name.localeCompare(b.name))){
+    const file=archive.file;const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
     hashes.push(`${archive.name}:${[...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('')}`);
   }
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(hashes.join('|')));const result=[...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('');
@@ -111,7 +132,7 @@ window.addEventListener('message',e=>{
   if(d.type==='zh-ready'&&!exiting){
     gameReady=true;sendAudio();sendDisplay(false);scheduleHide();
     const host=roomState?.players.find(p=>p.name===identity.name)?.host;
-    $('gameReady').hidden=!roomState;$('gameStart').hidden=!host;$('gameMap').hidden=!host;
+    $('gameReady').hidden=isYuri||!roomState;$('gameStart').hidden=isYuri||!host;$('gameMap').hidden=isYuri||!host;
   }
   if(d.type==='zh-maps'){
     const maps=d.maps.probe?.officialMultiplayerMaps||[];
@@ -140,19 +161,19 @@ window.addEventListener('message',e=>{
 });
 $('nameForm').querySelector('button').disabled=false;
 syncPreferences(false);
-cleanArchiveStaging().catch(()=>{});
+cleanArchiveStaging({profile:profile.archiveProfile}).catch(()=>{});
 restore();
 
 function postGame(data){if(!$('gameView').hidden)$('gameFrame').contentWindow.postMessage(data,location.origin)}
 function currentResolution(){return resolutionSize(preferences.resolution,$('gameFrame').clientWidth||innerWidth,$('gameFrame').clientHeight||innerHeight)}
-function sendAudio(){if(gameReady)postGame({type:'zh-volume',music:preferences.music/100,effects:preferences.effects/100})}
-function sendDisplay(resize=true){if(gameReady)postGame({type:'zh-display',...currentResolution(),resize,scaling:preferences.scaling,edgeScroll:preferences.edgeScroll,performance:preferences.performance})}
+function sendAudio(){if(isYuri){$('settingsStatus').textContent='Yuri audio changes are saved and apply on your next launch.';return}if(gameReady)postGame({type:'zh-volume',music:preferences.music/100,effects:preferences.effects/100})}
+function sendDisplay(resize=true){if(isYuri){$('settingsStatus').textContent='Yuri display and scrolling changes are saved and apply on your next launch.';return}if(gameReady)postGame({type:'zh-display',...currentResolution(),resize,scaling:preferences.scaling,edgeScroll:preferences.edgeScroll,performance:preferences.performance})}
 function syncPreferences(save=true){
   document.documentElement.dataset.theme=preferences.dark?'dark':'light';$('themeToggle').textContent=`Dark mode: ${preferences.dark?'on':'off'}`;$('themeToggle').setAttribute('aria-pressed',String(preferences.dark));
   for(const [id,key] of [['darkMode','dark'],['autoHide','autoHide'],['edgeScroll','edgeScroll'],['showPerformance','performance']])$(id).checked=preferences[key];
   for(const [id,key] of [['resolution','resolution'],['scaling','scaling'],['graphics','graphics'],['music','music'],['sound','effects']])$(id).value=preferences[key];
   $('musicValue').value=`${preferences.music}%`;$('soundValue').value=`${preferences.effects}%`;$('performanceInfo').hidden=!preferences.performance;
-  if(save)$('settingsStatus').textContent=savePreferences(preferences)?'Changes saved on this device.':'Settings work for this session. Browser storage could not save them.';
+  if(save)$('settingsStatus').textContent=savePreferences(preferences,profile.id)?'Changes saved on this device.':'Settings work for this session. Browser storage could not save them.';
 }
 function openSettings(){clearTimeout(hideTimer);if(!$('gameView').hidden)$('gameView').append($('settings'));else document.body.append($('settings'));$('settings').showModal();updateStorage();postGame({type:'zh-input-neutral'})}
 $('openSettings').onclick=$('gameSettings').onclick=openSettings;
@@ -179,15 +200,15 @@ async function updateStorage(){try{const [estimate,persisted,managed]=await Prom
 $('libraryDetails').addEventListener('toggle',()=>{if($('libraryDetails').open)updateStorage()});
 $('persistStorage').onclick=async()=>{try{const granted=await navigator.storage.persist();await updateStorage();$('backupStatus').textContent=granted?'Persistent storage granted. Keep an external backup too.':'This browser did not grant persistent storage. Keep your original archive or ZIP backup.'}catch(e){error(e.message)}};
 $('verifyLibrary').onclick=$('settingsVerifyLibrary').onclick=()=>maintainLibrary(async()=>{
-  $('backupStatus').textContent=$('settingsStorageStatus').textContent='Checking installed archive headers and required contents…';
+  $('backupStatus').textContent=$('settingsStorageStatus').textContent=isYuri?'Checking installed file sizes and required headers…':'Checking installed archive headers and required contents…';
   const library=await assetLibrary.verifyInstalledLibrary();
   if(!library){installed=false;throw Error(assetLibrary.lastValidationError||'No installed library was found. Import a complete game.');}
   const files=[];
-  for(const archive of library.archives){let dir=await navigator.storage.getDirectory();const parts=archive.opfsPath.split('/'),name=parts.pop();for(const part of parts)dir=await dir.getDirectoryHandle(part);const file=await(await dir.getFileHandle(name)).getFile();Object.defineProperty(file,'relativePath',{value:archive.name});files.push(file)}
+  for(const entry of await installedFiles()){const file=new File([entry.file],entry.name);Object.defineProperty(file,'relativePath',{value:entry.name});files.push(file)}
   const scan=await assetLibrary.scan(files);
   if(!scan.ok){installed=false;throw Error(scan.error||scan.detail||'Required game content is missing. Import a complete installation.');}
   await assetLibrary.archivesForLaunch();installed=true;showLobby();
-  $('backupStatus').textContent=$('settingsStorageStatus').textContent=`Ready: ${library.archives.length} archives passed file size, header and required-content checks.`;
+  $('backupStatus').textContent=$('settingsStorageStatus').textContent=isYuri?`Ready: ${library.archives.length} files passed inventory, size and required-header checks.`:`Ready: ${library.archives.length} archives passed file size, header and required-content checks.`;
 });
 function assertLibraryIdle(){if(roomSocket||!$('gameView').hidden||launching||importing||$('exportLibrary').disabled)throw Error('Exit the game, leave your room and finish any import or backup before cleaning game files.');}
 async function maintainLibrary(action){
@@ -207,14 +228,14 @@ $('removeLibrary').onclick=$('settingsRemoveLibrary').onclick=()=>{if($('setting
 }));};
 const cleanStorage=()=>maintainLibrary(async()=>{
   $('maintenanceStatus').textContent=$('settingsStorageStatus').textContent='Cleaning leftover game files…';
-  const unused=await assetLibrary.cleanUnusedStorage(),staging=await cleanArchiveStaging();
+  const unused=await assetLibrary.cleanUnusedStorage(),staging=await cleanArchiveStaging({profile:profile.archiveProfile});
   const count=unused.removed.length+staging.removed.length,failed=[...unused.failed,...staging.failed];
   const message=`${count?`Removed ${count} leftover game folder${count===1?'':'s'}.`:'No unused game files needed removal.'} Your installation and stored saves were kept.${unused.skipped||staging.skipped?' Files in use by another tab were kept. Close that tab and retry if needed.':''}${failed.length?' Some files could not be removed. Close other game tabs and retry.':''}`;
   failed.forEach(item=>recordError(`Storage cleanup: ${item.name}: ${item.error}`));
   $('maintenanceStatus').textContent=$('settingsStorageStatus').textContent=message;
 });
 $('cleanStorage').onclick=$('settingsCleanStorage').onclick=cleanStorage;
-function downloadDiagnostics(data){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`zero-hour-${VERSION}-diagnostics.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function downloadDiagnostics(data){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`${profile.id}-${VERSION}-diagnostics.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 async function exportDiagnostics(copy){
   const buttons=['diagnostics','settingsDiagnostics','copyDiagnostics'];if(diagnosticRequest)return;
   for(const id of buttons)$(id).disabled=true;
@@ -223,7 +244,7 @@ async function exportDiagnostics(copy){
       const timer=setTimeout(()=>{diagnosticRequest=null;resolve({error:'Engine diagnostics timed out. Browser diagnostics are still available.'})},7000);
       diagnosticRequest=data=>{clearTimeout(timer);diagnosticRequest=null;resolve(data)};postGame({type:'zh-diagnostics'});
     });
-    const data=diagnosticReport({preferences,library:assetLibrary.summary(),storage:await updateStorage(),engine});
+    const data=diagnosticReport({game:profile.id,preferences,library:assetLibrary.summary(),storage:await updateStorage(),engine});
     if(copy){try{await navigator.clipboard.writeText(JSON.stringify(data,null,2));$('settingsStatus').textContent='Diagnostics copied. They include browser and graphics information and recent errors.'}catch{downloadDiagnostics(data);$('settingsStatus').textContent='Clipboard unavailable. Diagnostics downloaded instead.'}}
     else{downloadDiagnostics(data);$('settingsStatus').textContent='Diagnostics downloaded.'}
   }catch(e){recordError(e.message);$('settingsStatus').textContent=`Diagnostics could not be prepared: ${e.message}`}
@@ -234,7 +255,7 @@ let availableVersion;
 $('appVersion').textContent=`Installed interface: ${VERSION}`;
 $('checkUpdates').onclick=async()=>{
   $('checkUpdates').disabled=true;$('updateStatus').textContent='Checking for an interface update…';$('applyUpdate').hidden=true;
-  try{const response=await fetch('./version.json',{cache:'no-store',signal:AbortSignal.timeout(8000)});if(!response.ok)throw Error('Version information is unavailable');const latest=await response.json();if(!/^\d+\.\d+\.\d+$/.test(latest.version))throw Error('Version information is invalid');const compare=latest.version.split('.').map(Number),current=VERSION.split('.').map(Number);const difference=compare.map((value,index)=>value-current[index]).find(value=>value!==0)||0;availableVersion=difference>0?latest.version:null;$('updateStatus').textContent=availableVersion?`Version ${availableVersion} is available. Exit the game and leave your room before applying it. Your local installation and saves will be kept.`:`Version ${VERSION} is current on this site.`;$('applyUpdate').hidden=!availableVersion;}
+  try{const response=await fetch(new URL('./version.json',import.meta.url),{cache:'no-store',signal:AbortSignal.timeout(8000)});if(!response.ok)throw Error('Version information is unavailable');const latest=await response.json();if(!/^\d+\.\d+\.\d+$/.test(latest.version))throw Error('Version information is invalid');const compare=latest.version.split('.').map(Number),current=VERSION.split('.').map(Number);const difference=compare.map((value,index)=>value-current[index]).find(value=>value!==0)||0;availableVersion=difference>0?latest.version:null;$('updateStatus').textContent=availableVersion?`Version ${availableVersion} is available. Exit the game and leave your room before applying it. Your local installation and saves will be kept.`:`Version ${VERSION} is current on this site.`;$('applyUpdate').hidden=!availableVersion;}
   catch(e){$('updateStatus').textContent=`Could not check for updates. Check your connection and retry. ${e.message}`}
   finally{$('checkUpdates').disabled=false;}
 };

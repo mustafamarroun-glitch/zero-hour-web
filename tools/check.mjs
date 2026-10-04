@@ -2,6 +2,8 @@ import {readFile,readdir,stat} from 'node:fs/promises';
 import {resolve,dirname,sep} from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {syncLaunchers} from './sync-launchers.mjs';
+await syncLaunchers({check:true});
 let count=0;const files=[];
 async function walk(dir){for(const e of await readdir(dir,{withFileTypes:true})){const p=resolve(dir,e.name);if(e.isDirectory())await walk(p);else files.push(p)}}
 await walk('public');await walk('tools');
@@ -25,4 +27,9 @@ function checkZip(bytes){const end=bytes.lastIndexOf(Buffer.from([0x50,0x4b,0x05
 const upstream=Buffer.concat(await Promise.all(['01','02'].map(part=>readFile(`public/source/NewShoes-source.zip.part${part}`))));checkZip(upstream);
 for(const name of manifest.sourceArchive.excludedNativeMedia||[])if(upstream.includes(Buffer.from(name)))throw Error(`Excluded native source media ${name}`);
 const standalone=await readFile('public/source/zero-hour-web-source.zip').catch(()=>null);if(standalone)checkZip(standalone);
+for(const folder of ['engine','relay']){
+ const yuri=JSON.parse(await readFile(`public/yuri/${folder}/provenance.json`,'utf8'));
+ for(const artifact of yuri.artifacts){if(!artifact.path.startsWith('public/yuri/')&&artifact.path!=='tools/yuri-relay/relay.cjs')throw Error('Unsafe Yuri artifact path');const bytes=await readFile(artifact.path);if(createHash('sha256').update(bytes).digest('hex')!==artifact.sha256)throw Error(`Changed Yuri runtime/source artifact: ${artifact.path}`);}
+}
+for(const source of ['public/yuri/engine/RA2-VM-source.zip','public/yuri/relay/Yuri-relay-source.zip'])checkZip(await readFile(source));
 console.log(`Checked ${count} scripts, local module imports, publication boundaries and engine/source checksums.`);

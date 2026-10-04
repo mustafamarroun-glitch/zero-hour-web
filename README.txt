@@ -196,6 +196,22 @@ unverified. Mobile gameplay is outside this release.
 
 MORE INFORMATION
 
+YURI'S REVENGE
+
+Choose Yuri's Revenge in the website header. It uses the same name, setup,
+settings and installed-file controls as Zero Hour. Choose/drop one ZIP or
+RAR, choose a complete game folder, or select its files. Wait for local
+installation, then Launch skirmish. There is no second file picker inside
+the game. Use Single Player > Skirmish, or Network for multiplayer.
+
+Both Yuri Get ZIP / Get RAR buttons open the supplied Google Drive location.
+The website does not download or upload game files automatically. Keep
+your original archive. Prepare ZIP backup saves the installed files; saved
+matches are stored separately. Removal keeps your commander, settings and
+stored saves. Yuri display/audio/scroll choices apply on your next launch.
+Create/join room uses the same eight-character invite flow as Zero Hour.
+Yuri gameplay polish and full internet-match acceptance are a later phase.
+
 README.md             - Technical overview and provenance.
 docs/VERIFICATION.md  - Recorded checks and remaining gameplay tests.
 docs/DEPLOYMENT.md    - Hosting and multiplayer service setup.

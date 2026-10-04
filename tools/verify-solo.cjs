@@ -1,9 +1,11 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs/promises');const path=require('node:path');
-(async()=>{
+runBrowserTest(async()=>{
  const site=process.env.ZH_SITE_URL||'http://localhost:8093/',profile=process.env.ZH_PROFILE||'.local/acceptance-browser',reportFile=process.env.ZH_REPORT||'.local/solo-verification.json';
  const software=process.env.ZH_RENDERER!=='hardware';
  const report={checks:[],errors:[],missing:[],site,rendererRequested:software?'SwiftShader':'Default Windows Chrome',scope:'Windows Chrome, headless disposable standalone profile, actual installed retail archives'};
- const ctx=await chromium.launchPersistentContext(path.resolve(profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]});
+ const ctx=await launchTestContext(chromium,path.resolve(profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]});
+ report.testProfile=ctx.testProfile;
  const page=ctx.pages()[0]||await ctx.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()===404)report.missing.push(r.url())});
  const timer=setInterval(()=>console.log('SOLO',report.stage),20000);
  let game;
@@ -64,4 +66,4 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   report.status='passed';
  }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;if(game){report.failedSelection=await rpc('querySelection').catch(()=>null);await capture('solo-failure').catch(()=>{});}}
  finally{clearInterval(timer);await fs.writeFile(reportFile,JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors,missing:report.missing},null,2));await ctx.close();}
-})();
+});

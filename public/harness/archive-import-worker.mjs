@@ -7,7 +7,8 @@ function pathName(name){
   if(!path||/[\x00-\x1f\x7f:]/.test(path)||path.startsWith('/')||path.split('/').some(p=>!p||p==='.'||p==='..'))throw Error(`Unsafe archive path: ${name}`);
   return path;
 }
-const wanted=path=>/\.big$/i.test(path)||/(?:^|\/)cursors\/[a-z0-9_ -]+\.ani$/i.test(path);
+let profile='zero-hour';
+const wanted=path=>profile==='yuri'?/\.(?:mix|exe|dll|ini|tlb|dat|lcf|dsk|256|016|mmx|yro|mpr|yrm|map|wav|txt|fnt|shp|vxl|hva|csf|pal|aud)$/i.test(path):/\.big$/i.test(path)||/(?:^|\/)cursors\/[a-z0-9_ -]+\.ani$/i.test(path);
 function validate(entries){
   if(!entries.length||entries.length>MAX_FILES)throw Error('Archive is empty or contains too many entries.');
   const seen=new Set(),basenames=new Set();let total=0;
@@ -15,10 +16,11 @@ function validate(entries){
     if(e.directory)continue;
     if(!Number.isSafeInteger(e.size)||e.size<0)throw Error(`Invalid file size: ${e.path}`);
     total+=e.size;if(total>LIMIT)throw Error('Archive expands beyond the 8 GB import limit. Choose a Data folder.');
-    if(wanted(e.path)){const base=e.path.split('/').at(-1).toLowerCase();if(basenames.has(base))throw Error(`Multiple copies of ${base}. Choose an archive containing one installation.`);basenames.add(base)}
+    if(wanted(e.path)){const base=profile==='yuri'?e.path.toLowerCase():e.path.split('/').at(-1).toLowerCase();if(basenames.has(base))throw Error(`Multiple copies of ${base}. Choose an archive containing one installation.`);basenames.add(base)}
   }
   const selected=entries.filter(e=>!e.directory&&wanted(e.path));
-  if(!selected.some(e=>/\.big$/i.test(e.path)))throw Error('No game .big files found. Choose an archive of the installed game’s Data folder.');
+  if(profile==='yuri'&&!selected.some(e=>/(?:^|\/)gamemd\.exe$/i.test(e.path)))throw Error('No gamemd.exe found. Choose an archive of your complete Yuri installation.');
+  if(profile!=='yuri'&&!selected.some(e=>/\.big$/i.test(e.path)))throw Error('No game .big files found. Choose an archive of the installed game’s Data folder.');
   return selected;
 }
 const progress=(detail,completedBytes,totalBytes)=>postMessage({type:'progress',phase:'Extracting archive',detail,completedBytes,totalBytes});
@@ -85,7 +87,8 @@ async function extractRar(file,directory){
     progress('RAR extraction complete',extractor.total,extractor.total);return files;
   }finally{for(const handle of handles)try{handle.close()}catch{}if(extractor._archive)extractor.closeArc()}
 }
-self.onmessage=async({data:{file,directory}})=>{
+self.onmessage=async({data:{file,directory,profile:requestedProfile='zero-hour'}})=>{
+  profile=requestedProfile;
   try{progress(`Reading ${file.name}…`,0,0);const files=/\.zip$/i.test(file.name)?await extractZip(file,directory):await extractRar(file,directory);postMessage({type:'done',files})}
   catch(error){postMessage({type:'error',message:`${error.message||error}. Choose ZIP or extract the archive on your computer if this format cannot be read.`})}
 };

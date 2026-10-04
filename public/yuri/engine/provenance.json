@@ -1,0 +1,176 @@
+{
+  "engine": "RA2 VM",
+  "commit": "a10ac9899c258b01be1edd80492397e9de225ba5",
+  "license": "GPL-3.0-or-later",
+  "upstream": "https://github.com/ra2-games/ra2",
+  "changes": [
+    "Relative build base",
+    "No game-specific service worker",
+    "CSS menu instead of unlicensed plates",
+    "Winchester artwork and textual game labels",
+    "Validated import completion message for desktop shortcuts",
+    "Source-derived required-file cache manifest",
+    "Original LF shader bytes",
+    "Custom firmware extension .rom; content unchanged",
+    "Independent Zero Hour Web Yuri storage namespace",
+    "Website page title and empty favicon"
+  ],
+  "artifacts": [
+    {
+      "path": "public/yuri/engine/LICENSE",
+      "bytes": 35823,
+      "sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809",
+      "referenceSha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+    },
+    {
+      "path": "public/yuri/engine/RA2-VM-source.zip",
+      "bytes": 1361633,
+      "sha256": "445f5ecb615ec4d8ff0237b9d55f6ac4834472058a49e37b1ce2c67fe671bdcb",
+      "referenceSha256": "764225c7779b3bbadc91a668f711ee38e56e39c4e9954b43757a127f4c99878f"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/7zz-CgkXYLdN.wasm",
+      "bytes": 1651931,
+      "sha256": "e16c6997e2eaa89575c0dd1f305074be629c3f4d87246244d37fd19debc8a285",
+      "referenceSha256": "e16c6997e2eaa89575c0dd1f305074be629c3f4d87246244d37fd19debc8a285"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/__vite-browser-external-9wXp6ZBx.js",
+      "bytes": 32,
+      "sha256": "51b74b299fd77141b0bcb51592d079bd2caad27d3575efc6e9956da7f4b15df6",
+      "referenceSha256": "51b74b299fd77141b0bcb51592d079bd2caad27d3575efc6e9956da7f4b15df6"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/__vite-browser-external-BIHI7g3E.js",
+      "bytes": 34,
+      "sha256": "c44b30d9f102f3d5d8560b1f46af6f3d40e649349a29f60fd4d5bed7a32ece9b",
+      "referenceSha256": "c44b30d9f102f3d5d8560b1f46af6f3d40e649349a29f60fd4d5bed7a32ece9b"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/archiveExtract-BCjFCYUl.js",
+      "bytes": 3625,
+      "sha256": "887d02a5b47a7d992986b3d3c7461a8a99a412bb85d553c9d298f36f7e9c7f82",
+      "referenceSha256": "887d02a5b47a7d992986b3d3c7461a8a99a412bb85d553c9d298f36f7e9c7f82"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/archiveExtractWorker-DCjHgaIr.js",
+      "bytes": 68814,
+      "sha256": "d820ca2afb108ef5623fea90d8bedfcc172a9d77e0de311671bffb40b17a9416",
+      "referenceSha256": "d820ca2afb108ef5623fea90d8bedfcc172a9d77e0de311671bffb40b17a9416"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/boot-CYpL4ss3.rom",
+      "bytes": 65536,
+      "sha256": "f37c49dbae4a097ba4915963792930013ecf3b535c86912cf5e0c3a175501825",
+      "referenceSha256": "f37c49dbae4a097ba4915963792930013ecf3b535c86912cf5e0c3a175501825"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/CustomMapDialog-BdeRUN8Y.js",
+      "bytes": 2710,
+      "sha256": "e3f7c3c86444b26e5ffddbbdfe470ef62192eaed11bfe46171b52f571ce06643",
+      "referenceSha256": "e3f7c3c86444b26e5ffddbbdfe470ef62192eaed11bfe46171b52f571ce06643"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/customMapPackage-CtM6wVHv.js",
+      "bytes": 1436,
+      "sha256": "f6a5bb3494507b7291da0880af76924abd92e42be666b85124ccb23e1a41052b",
+      "referenceSha256": "f6a5bb3494507b7291da0880af76924abd92e42be666b85124ccb23e1a41052b"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/gameSourcePicker-_Gu-rbMz.js",
+      "bytes": 37185,
+      "sha256": "bf37ed72dcc7838fcd1911a0de24dc584775b9c4e2f6e634e59ef0f01cd59634",
+      "referenceSha256": "bf37ed72dcc7838fcd1911a0de24dc584775b9c4e2f6e634e59ef0f01cd59634"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/GameSourcePickerView-DzbjMvHR.css",
+      "bytes": 4084,
+      "sha256": "538158ec49b533e92100736325df05ef38c11fabeb0e34f6ce05ac52a9678907",
+      "referenceSha256": "538158ec49b533e92100736325df05ef38c11fabeb0e34f6ce05ac52a9678907"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/GameSourcePickerView-qecxyQVO.js",
+      "bytes": 7263,
+      "sha256": "a3953d518cf01315f4a1c3fb9ec54aa8a271b0ce3635b73f121ba2631923a08b",
+      "referenceSha256": "a3953d518cf01315f4a1c3fb9ec54aa8a271b0ce3635b73f121ba2631923a08b"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/index--cNvML9v.css",
+      "bytes": 53430,
+      "sha256": "e17153952fefce588d48c48765da563a50b19966f55097ac908603f7981ba589",
+      "referenceSha256": "e17153952fefce588d48c48765da563a50b19966f55097ac908603f7981ba589"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/index-D4YG0Zsg.js",
+      "bytes": 495074,
+      "sha256": "da130940cdb70f9ee5c21997997c77e102cc6b44f72f4262c7f972394a4f834d",
+      "referenceSha256": "76faa8a2d6c38dda65186158c4102253f38f524c211095d9efda35b8ca18c7a4"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/lzma-worker-DfxFe8o9.js",
+      "bytes": 35863,
+      "sha256": "f67d5f0352071ba11bb6813dfe82a963b94f1ce72e3e45b39e1c55c27a7cca97",
+      "referenceSha256": "f67d5f0352071ba11bb6813dfe82a963b94f1ce72e3e45b39e1c55c27a7cca97"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/lzmaDecodeWorker-mr57Mk4r.js",
+      "bytes": 36847,
+      "sha256": "212405186e188f26b5d24f183ad61e4ed6ff6c8724532539ac77bedea4330e77",
+      "referenceSha256": "212405186e188f26b5d24f183ad61e4ed6ff6c8724532539ac77bedea4330e77"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/page-iqEaUfAT.js",
+      "bytes": 868550,
+      "sha256": "447f91b50b3f26b71f6bdbd9c6c7679d3c8a3373128c5e2ccaf11717ec636827",
+      "referenceSha256": "a89b0120eb2b6d2efaf4c0764eaf136f7bd76070bed1243027b4a41db9630b59"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/pcmStreamWorklet-C1FB3cCM.js",
+      "bytes": 6158,
+      "sha256": "756ea4389ecc16aa60f785bdce4cfed446cc14968694c9b1092fde1a9fac45a3",
+      "referenceSha256": "756ea4389ecc16aa60f785bdce4cfed446cc14968694c9b1092fde1a9fac45a3"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/sha256-BcB8CZaj.js",
+      "bytes": 170,
+      "sha256": "57d96012eb15c2c8a5819e7880e96a93a11571744c1d14fc407cc735b5275988",
+      "referenceSha256": "57d96012eb15c2c8a5819e7880e96a93a11571744c1d14fc407cc735b5275988"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/v86-DcMzCfv7.wasm",
+      "bytes": 2101621,
+      "sha256": "6121632f6d657d03f2286341ed87edcafd4945fa65ae765b4c7fd0bf2554a9c7",
+      "referenceSha256": "6121632f6d657d03f2286341ed87edcafd4945fa65ae765b4c7fd0bf2554a9c7"
+    },
+    {
+      "path": "public/yuri/engine/runtime/assets/vmWorker-CoQ0gQf9.js",
+      "bytes": 748632,
+      "sha256": "edba8ad6101a9e65b6901b73783ed04ec520756ca94a554756540deec6169d4e",
+      "referenceSha256": "4b5a3fbad6fb24e225eef13a37ade46059fbac593c40a9ae7c419ae5bd2231bb"
+    },
+    {
+      "path": "public/yuri/engine/runtime/index.html",
+      "bytes": 854,
+      "sha256": "1243daba5854b49c15e16e74b524906f2e899505999a4731e11b40117e1aa62f",
+      "referenceSha256": "98b7caeb201642470df46cd12b8213898159ee7ed4ba85eaa8803b668057685e"
+    },
+    {
+      "path": "public/yuri/engine/runtime/library.json",
+      "bytes": 151,
+      "sha256": "d2d2af3ccc80a5ad8f73c70ff48eb0b0d36a16f168537d1aa9feafefff61d321",
+      "referenceSha256": "848e5574ba4a3c24dd1fe3835fc697839bcc9ae61b211f2beb93af4005e7644c"
+    },
+    {
+      "path": "public/yuri/engine/THIRD_PARTY.md",
+      "bytes": 3366,
+      "sha256": "a61732542d356312d553750e23c66b0b1b2dc76206896e5d75201e2fb110f20c",
+      "referenceSha256": "a61732542d356312d553750e23c66b0b1b2dc76206896e5d75201e2fb110f20c"
+    },
+    {
+      "path": "public/yuri/engine/THIRD_PARTY_LICENSES.txt",
+      "bytes": 45609,
+      "sha256": "2c949e0f6900652f48550c64c2704cfde1e2732a9a517f7f9d1b5608a570561b",
+      "referenceSha256": "2c949e0f6900652f48550c64c2704cfde1e2732a9a517f7f9d1b5608a570561b"
+    }
+  ]
+}

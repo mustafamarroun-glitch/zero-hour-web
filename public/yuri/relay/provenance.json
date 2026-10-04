@@ -1,0 +1,45 @@
+{
+  "engine": "RA2 VM relay",
+  "commit": "a10ac9899c258b01be1edd80492397e9de225ba5",
+  "license": "GPL-3.0-or-later",
+  "upstream": "https://github.com/ra2-games/ra2",
+  "changes": [
+    "Unmodified upstream relay in a standalone Node bundle",
+    "Inventory-only engine hosting and a random room",
+    "Temporary Cloudflare tunnel started separately",
+    "Independent Zero Hour Web Yuri storage namespace",
+    "Website page title and empty favicon"
+  ],
+  "artifacts": [
+    {
+      "path": "public/yuri/relay/LICENSE",
+      "bytes": 35823,
+      "sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809",
+      "referenceSha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+    },
+    {
+      "path": "public/yuri/relay/licenses/ws/LICENSE",
+      "bytes": 1183,
+      "sha256": "2b29dcfe0d6471f7e8c92c5fb38c9f93edee10330937055440192f1832b1ecef",
+      "referenceSha256": "2b29dcfe0d6471f7e8c92c5fb38c9f93edee10330937055440192f1832b1ecef"
+    },
+    {
+      "path": "tools/yuri-relay/relay.cjs",
+      "bytes": 160690,
+      "sha256": "70565b3d18223f441a8ff9676dc368328cf170234e3f38e0f27c8019078d7a4a",
+      "referenceSha256": "70565b3d18223f441a8ff9676dc368328cf170234e3f38e0f27c8019078d7a4a"
+    },
+    {
+      "path": "public/yuri/relay/RELAY_PROTOCOL.md",
+      "bytes": 5327,
+      "sha256": "f78e4f94690ec45af8ad523939b7b1727b299560a7d7ad14960316bca371aec0",
+      "referenceSha256": "f78e4f94690ec45af8ad523939b7b1727b299560a7d7ad14960316bca371aec0"
+    },
+    {
+      "path": "public/yuri/relay/Yuri-relay-source.zip",
+      "bytes": 97509,
+      "sha256": "35713f1ad912fdc3a5f983d9a3495451b6e7451e950c3e02db3119772a92d245",
+      "referenceSha256": "35713f1ad912fdc3a5f983d9a3495451b6e7451e950c3e02db3119772a92d245"
+    }
+  ]
+}

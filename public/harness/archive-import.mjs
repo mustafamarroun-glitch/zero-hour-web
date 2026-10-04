@@ -1,11 +1,11 @@
 // Extract only game data to private staging storage; the existing validator owns installation.
 import './storage-scope.js';
 let active=null;
-async function staging(){return (await navigator.storage.getDirectory()).getDirectoryHandle('archive-staging',{create:true})}
-export async function cleanArchiveStaging(){
+async function staging(profile){return (await navigator.storage.getDirectory()).getDirectoryHandle(profile==='yuri'?'yuri-archive-staging':'archive-staging',{create:true})}
+export async function cleanArchiveStaging({profile='zero-hour'}={}){
   const result={removed:[],failed:[],skipped:false};
   if(!navigator.locks?.request)return {...result,skipped:true};
-  const dir=await staging();
+  const dir=await staging(profile);
   for await(const [name] of dir.entries())if(/^extract-[a-z0-9-]+$/.test(name)){
     await navigator.locks.request(`zhweb-extract:${name}`,{ifAvailable:true},async lock=>{
       if(!lock){result.skipped=true;return;}
@@ -15,13 +15,14 @@ export async function cleanArchiveStaging(){
   }
   return result;
 }
-export async function extractGameArchive(file,{signal,onProgress=()=>{}}={}){
+export async function extractGameArchive(file,{signal,onProgress=()=>{},profile='zero-hour'}={}){
+  if(!['zero-hour','yuri'].includes(profile))throw Error('Unknown archive profile.');
   if(active)throw Error('An archive is already being extracted.');
   if(!/\.(zip|rar)$/i.test(file.name))throw Error('Choose one .zip or .rar archive.');
   if(!navigator.storage?.getDirectory||!navigator.locks)throw Error('Archive import requires browser storage. Use a current desktop browser.');
   signal?.throwIfAborted();
   const root=`extract-${crypto.randomUUID()}`;
-  const parent=await staging();
+  const parent=await staging(profile);
   const directory=await parent.getDirectoryHandle(root,{create:true});
   let releaseLock;const hold=new Promise(resolve=>{releaseLock=resolve});let lockReady;
   const locked=new Promise(resolve=>{lockReady=resolve});
@@ -37,7 +38,7 @@ export async function extractGameArchive(file,{signal,onProgress=()=>{}}={}){
       const finish=(callback,value)=>{signal?.removeEventListener('abort',abort);callback(value)};
       worker.onmessage=e=>{if(e.data.type==='progress')onProgress(e.data);if(e.data.type==='done')finish(resolve,e.data.files);if(e.data.type==='error')finish(reject,Error(e.data.message))};
       worker.onerror=e=>{e.preventDefault();finish(reject,Error(e.message||'Archive extraction failed. Use ZIP or extract the folder on your computer.'))};
-      worker.postMessage({file,directory});
+      worker.postMessage({file,directory,profile});
       if(signal?.aborted)abort();
     });
     worker.terminate();active=null;

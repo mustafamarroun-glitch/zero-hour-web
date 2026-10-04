@@ -3,12 +3,18 @@ import {readFile,stat} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {WebSocketServer} from 'ws';
+import {createRequire} from 'node:module';
+const {createGameRelay}=createRequire(import.meta.url)('./yuri-relay/relay.cjs');
+const yuriRelay=createGameRelay({maxConnections:8});
 const root=resolve(process.env.SITE_ROOT||'public'),host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||8093);
-const types={'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.wasm':'application/wasm','.woff2':'font/woff2','.ttf':'font/ttf','.md':'text/plain; charset=utf-8','.txt':'text/plain; charset=utf-8','.zip':'application/zip'};
+const types={'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.wasm':'application/wasm','.woff2':'font/woff2','.ttf':'font/ttf','.svg':'image/svg+xml','.md':'text/plain; charset=utf-8','.txt':'text/plain; charset=utf-8','.zip':'application/zip'};
 const server=createServer(async(req,res)=>{
   const headers={'Cross-Origin-Opener-Policy':'same-origin','Cross-Origin-Embedder-Policy':'require-corp','Cross-Origin-Resource-Policy':'same-origin','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache'};
   try{
     const url=new URL(req.url,'http://localhost');
+    if(url.pathname==='/yuri-health'){
+      res.writeHead(200,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,service:'yuri-relay',...yuriRelay.getHealth()}));return;
+    }
     if(url.pathname==='/network-config.json'){
       res.writeHead(200,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({rooms:process.env.ROOMS_URL||'/rooms',signaling:process.env.SIGNALING_URL||'/nostr',iceServers:JSON.parse(process.env.ICE_SERVERS||'[]'),runtime:'3ccaa0e9-compiled-combined-v6'}));return;
     }
@@ -23,12 +29,13 @@ const roomWss=new WebSocketServer({noServer:true,maxPayload:4096});
 const signalWss=new WebSocketServer({noServer:true,maxPayload:256*1024});
 const signals=new Set(),events=[];
 function send(socket,msg){if(socket.readyState===1)socket.send(JSON.stringify(msg))}
-function publishRoom(room){const players=room.players.map(p=>({name:p.name,host:p.host}));const compatible=room.players.length===2&&room.players.every(p=>p.content===room.players[0].content&&p.runtime===room.players[0].runtime);for(const p of room.players)send(p.socket,{code:room.code,players,compatible});}
+function publishRoom(room){const players=room.players.map(p=>({name:p.name,host:p.host}));const compatible=room.players.length===2&&room.players.every(p=>p.content===room.players[0].content&&p.runtime===room.players[0].runtime);for(const p of room.players)send(p.socket,{code:room.code,players,compatible,game:room.game,relayCode:room.relayCode});}
 server.on('upgrade',(req,socket,head)=>{
   const pathname=new URL(req.url,'http://localhost').pathname;
   const origin=req.headers.origin;
   const allowed=process.env.ALLOWED_ORIGINS?.split(',')||[`http://localhost:${port}`,`http://127.0.0.1:${port}`];
   if(!origin||!allowed.includes(origin)){socket.destroy();return;}
+  if(/^\/yuri-[a-f0-9]{24}$/.test(pathname)){yuriRelay.handleUpgrade(req,socket,head);return;}
   const wss=pathname==='/rooms'?roomWss:pathname==='/nostr'?signalWss:null;
   if(!wss){socket.destroy();return;}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,req));
 });
@@ -37,12 +44,13 @@ roomWss.on('connection',socket=>{
   socket.on('message',raw=>{
     try{
       if(joined)throw Error('Already in a room. Leave before joining another.');
-      const msg=JSON.parse(raw);if(!/^[A-Za-z0-9 _-]{2,12}$/.test(msg.name)||!/^[a-f0-9-]{36}$/.test(msg.guest)||!/^[a-f0-9]{64}$/.test(msg.content)||msg.runtime!=='3ccaa0e9-compiled-combined-v6')throw Error('Invalid commander identity or incompatible runtime.');
+      const msg=JSON.parse(raw);msg.game=msg.game||'zero-hour';const expectedRuntime={'zero-hour':'3ccaa0e9-compiled-combined-v6',yuri:'ra2-vm-a10ac989'}[msg.game];if(!/^[A-Za-z0-9 _-]{2,12}$/.test(msg.name)||!/^[a-f0-9-]{36}$/.test(msg.guest)||!/^[a-f0-9]{64}$/.test(msg.content)||!expectedRuntime||msg.runtime!==expectedRuntime)throw Error('Invalid commander identity or incompatible runtime.');
       if(msg.action==='create'){
         if(rooms.size>=100)throw Error('Room service is full. Try again later.');
-        let code;do{code=randomBytes(4).toString('hex').toUpperCase()}while(rooms.has(code));joined={code,players:[]};rooms.set(code,joined);
+        let code;do{code=randomBytes(4).toString('hex').toUpperCase()}while(rooms.has(code));joined={code,game:msg.game,relayCode:msg.game==='yuri'?randomBytes(12).toString('hex'):undefined,players:[]};rooms.set(code,joined);
       }else if(msg.action==='join'){
         joined=rooms.get(String(msg.code||'').toUpperCase());if(!joined)throw Error('Room not found. Check the code or ask the host for a new invite.');
+        if(joined.game!==msg.game)throw Error('This room belongs to a different game. Select the host’s game and retry.');
         if(joined.players.length>=2)throw Error('This two-player room is full.');
         if(joined.players.some(p=>p.name.toLowerCase()===msg.name.toLowerCase()))throw Error('That commander name is already in this room. Change your name and retry.');
         if(joined.players.some(p=>p.guest===msg.guest))throw Error('This guest is already connected. Use a separate browser profile for a second player.');
@@ -72,4 +80,4 @@ signalWss.on('connection',socket=>{
   });socket.on('close',()=>signals.delete(client));
 });
 server.listen(port,host,()=>console.log(`Zero Hour Web: http://localhost:${port} (separate origin; room and signaling service active)`));
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{for(const client of signals)client.socket.close();for(const room of rooms.values())for(const p of room.players)p.socket.close();server.close(()=>process.exit());setTimeout(()=>process.exit(),1000).unref()});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{yuriRelay.close();for(const client of signals)client.socket.close();for(const room of rooms.values())for(const p of room.players)p.socket.close();server.close(()=>process.exit());setTimeout(()=>process.exit(),1000).unref()});

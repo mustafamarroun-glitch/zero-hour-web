@@ -1,10 +1,11 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs/promises');
 const path=require('node:path');
-(async()=>{
+runBrowserTest(async()=>{
  await fs.mkdir('.local',{recursive:true});await fs.mkdir('output/playwright',{recursive:true});
  const report={started:new Date().toISOString(),checks:[],errors:[],network:[],scope:'Fresh Windows browser profile; real user-owned archives; no source-project browser storage'};
- const context=await chromium.launchPersistentContext(path.resolve('.local/acceptance-browser'),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
+ const context=await launchTestContext(chromium,path.resolve('.local/acceptance-browser'),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
  const page=context.pages()[0]||await context.newPage();page.on('pageerror',e=>{report.errors.push(e.message);console.log('PAGE ERROR',e.message)});page.on('requestfailed',r=>report.network.push({url:r.url(),error:r.failure()?.errorText}));page.on('console',m=>{if(m.type()==='error')console.log('CONSOLE ERROR',m.text().slice(0,300))});
  const timer=setInterval(async()=>console.log('STAGE',report.stage,await page.frameLocator('#gameFrame').locator('#status').textContent({timeout:500}).catch(()=>'')),20000);
  try{
@@ -35,4 +36,4 @@ const path=require('node:path');
   report.status='foundation boot passed; gameplay checks continue separately';
  }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;}
  finally{clearInterval(timer);await fs.writeFile('.local/browser-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors,network:report.network},null,2));await context.close();}
-})();
+});

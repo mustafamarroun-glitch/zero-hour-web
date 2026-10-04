@@ -1,5 +1,7 @@
 # Separate deployment
 
+The hosting package includes Yuri’s Revenge at `/yuri/`. `npm start` supplies the shared room service and independent RA2 VM relay; restart existing servers to load them. Static hosts configure `/rooms`, `/nostr` and the `yuriRelay` WS/WSS service origin in `network-config.json`. See [YURI.md](YURI.md) for paths, allowed origins and verification limits. The October 4 preview package is prepared for the existing dedicated GitHub Pages site.
+
 `npm run package` creates an allowlisted static website and complete corresponding source. Publish `release/site`, not the workspace. Original installations, profiles, retail data, screenshots, saves and credentials are excluded. The original Online-Games deployment must remain untouched.
 
 ## Hosting
@@ -22,4 +24,4 @@ Free development option: Cloudflare Quick Tunnel can expose this project's local
 
 The separate public repository is https://github.com/mustafamarroun-glitch/zero-hour-web. Its workflow checks and packages the allowlisted site before publishing through GitHub Pages. An existing Git Credential Manager account was verified and is used without storing tokens in this project. No paid service has been provisioned.
 
-The user explicitly approved a temporary Cloudflare endpoint for localhost:8095. Registration succeeded after selecting Cloudflare's resolved edge directly. The actual published room UI and bidirectional WebRTC datagrams through public Nostr signaling passed in Chrome. Terminal health requests timed out and the tunnel sometimes reconnects, so do not treat it as a production availability guarantee. Full engine gameplay on different networks remains a separate gate. The endpoint works only while this PC, service and tunnel remain running.
+The older temporary service on localhost:8095 remains untouched. The shared Yuri preview service uses localhost:8096 and its own tracked session under `.local/preview-server`; `Start Zero Hour Multiplayer.cmd` starts/checks it. The current public configuration uses `tax-highlights-antivirus-flexibility.trycloudflare.com`. Synthetic Yuri relay discovery, bidirectional forwarding and session separation passed through that WSS service with the GitHub website origin. Previous public Zero Hour room/signaling checks are separate evidence. Full engine gameplay on different networks remains a separate gate. The temporary endpoint works only while this PC, service and tunnel remain running; a newly created tunnel requires republishing its configuration.

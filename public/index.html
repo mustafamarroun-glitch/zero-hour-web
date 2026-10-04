@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Play Generals Zero Hour in your browser using your own local game files."><link rel="icon" href="data:,"><title>Zero Hour Web 2.1</title><script src="./theme.js"></script><link rel="stylesheet" href="./style.css"></head>
 <body>
-<header class="masthead"><a class="wordmark" href="./">ZERO HOUR <span>WEB · 2.1</span></a><div class="header-actions"><div class="identity" hidden><span id="commander"></span><button id="changeName" class="text-button">Change name</button></div><button id="themeToggle" class="text-button" aria-pressed="true">Dark mode: on</button><button id="openSettings" class="text-button">Settings</button></div></header>
+<header class="masthead"><a class="wordmark" href="./">ZERO HOUR <span>WEB · 2.1</span></a><nav class="game-selector" aria-label="Choose a game"><a href="./" aria-current="page">Zero Hour</a><a href="./yuri/">Yuri’s Revenge</a></nav><div class="header-actions"><div class="identity" hidden><span id="commander"></span><button id="changeName" class="text-button">Change name</button></div><button id="themeToggle" class="text-button" aria-pressed="true">Dark mode: on</button><button id="openSettings" class="text-button">Settings</button></div></header>
 <main>
   <section id="entry" class="entry">
     <div class="intro"><h1>Your command.<br>Your battlefield.</h1><p>Command &amp; Conquer: Generals Zero Hour, directly in your browser.</p><div class="route"><span>Choose a name</span><span>Import your files</span><span>Take command</span></div></div>
@@ -9,7 +9,7 @@
   </section>
   <section id="setup" hidden>
     <div class="page-heading"><h1>Prepare for deployment.</h1><p>Import your compatible Generals + Zero Hour files. They stay on this device.</p></div>
-    <div class="setup-grid"><div><h2>Install in this browser</h2><p>Choose one <strong>ZIP or RAR</strong>, the installation’s <strong>Data folder</strong>, or its files. We check the required archives and their contents before installation.</p>
+    <div class="setup-grid"><div id="importDrop"><h2>Install in this browser</h2><p>Drop one <strong>ZIP or RAR</strong> here, or choose the installation’s <strong>Data folder</strong> or its files below. We check the required archives and their contents before installation.</p>
       <div class="actions"><button id="chooseArchive" class="primary">Choose ZIP or RAR</button><button id="chooseFolder">Choose game folder</button><button id="chooseFiles">Select files</button></div>
       <input id="archiveInput" type="file" accept=".zip,.rar" hidden><input id="folderInput" type="file" webkitdirectory multiple hidden><input id="fileInput" type="file" multiple accept=".big,.iso,.bin,.cue" hidden>
       <p class="muted">Archives are extracted locally. A containing folder is supported. Keep the original archive as your backup. ZIP uses less memory; encrypted and multipart archives need to be extracted on your computer first.</p>

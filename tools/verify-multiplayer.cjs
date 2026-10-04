@@ -1,5 +1,6 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs/promises');const path=require('node:path');
-(async()=>{
+runBrowserTest(async()=>{
  const software=process.env.ZH_RENDERER!=='hardware';
  const report={checks:[],errors:[],rendererRequested:software?'SwiftShader':'Default Windows Chrome hardware path',scope:'Two local Windows Chrome browser profiles on one PC; real archives and engine instances. Does not establish two computers or different networks.'};
  const contexts=[],clients=[];let timer;
@@ -10,7 +11,7 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   timer=setInterval(()=>console.log('MULTIPLAYER',report.stage),20000);
   for(const [profile,name]of [['acceptance-browser','FieldTest'],['guest-browser','FieldGuest']]){
    report.stage=`Preparing ${name}`;
-   const context=await chromium.launchPersistentContext(path.resolve('.local/'+profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]});contexts.push(context);const page=context.pages()[0]||await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log(name,m.text().slice(0,180))});await page.goto(process.env.ZH_SITE_URL||'http://localhost:8093/');await page.waitForTimeout(1000);
+   const context=await launchTestContext(chromium,path.resolve('.local/'+profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]},{reuseProfile:profile==='acceptance-browser'?(process.env.ZH_HOST_PROFILE||null):(process.env.ZH_GUEST_PROFILE||null)});contexts.push(context);const page=context.pages()[0]||await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log(name,m.text().slice(0,180))});await page.goto(process.env.ZH_SITE_URL||'http://localhost:8093/');await page.waitForTimeout(1000);
    if(await page.locator('#entry').isVisible()){await page.locator('#name').fill(name);await page.locator('#nameForm button').click();}
    if(await page.locator('#setup').isVisible()){await page.locator('#folderInput').setInputFiles('C:\\Program Files (x86)\\DODI-Repacks\\Generals Zero Hour\\Data');await page.locator('#lobby').waitFor({state:'visible',timeout:240000});}
    clients.push({page,name});
@@ -67,5 +68,4 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   report.status='passed preliminary local startup; full match and separate networks pending';
  }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;report.failureStates=await Promise.all(clients.filter(c=>c.game).map(async c=>({name:c.name,url:c.game.url(),siteStatus:await c.page.locator('#gameStatus').textContent(),engineStatus:await c.game.locator('#status').textContent(),lan:await state(c),transport:await rpc(c,'browserWebRtcEndpointState'),frame:await rpc(c,'realEngineFrame',{frames:1})})));for(const c of clients.filter(c=>c.game)){const shot=await rpc(c,'screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile(`output/playwright/multiplayer-${c.name}.png`,Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));}}
  finally{clearInterval(timer);await fs.writeFile('.local/multiplayer-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors},null,2));for(const c of contexts)await c.close();}
-})();
-
+});

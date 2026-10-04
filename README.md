@@ -1,6 +1,12 @@
 # Zero Hour Web
 
-Standalone Generals Zero Hour browser interface using the real New Shoes threaded engine. This is a separate project and repository. Online-Games is a read-only technical reference and remains untouched. GitHub Pages repositories on the same account share a browser origin; this product uses its own storage namespace for identity, imports, engine preferences and saves.
+Generals Zero Hour browser interface using New Shoes, with Yuri’s Revenge available through its separate RA2 VM runtime. This is a separate project and repository. Online-Games is a read-only technical reference and remains untouched. GitHub Pages repositories on the same account share a browser origin; this product uses its own storage namespaces for identity, imports, engine preferences and saves.
+
+## Yuri’s Revenge
+
+Choose **Yuri’s Revenge** in the header, or open `/yuri/`. Use the same commander → import → installed-library flow as Zero Hour. Choose or drop one ZIP/RAR, choose a complete game folder, or select its files. Import happens locally, with progress, cancellation and safe replacement. It requires the original `gamemd.exe`; `gamemd-spawn.exe` is not a substitute. Launch restores the installed files without a second picker. Use **Single Player → Skirmish** in the original game. Save before **Exit to website**. Recovery provides verification, ZIP backup, replacement and confirmed removal while retaining commander, preferences and stored saves.
+
+For multiplayer, create a room and copy its invite, or join a friend’s eight-character room code. Each player imports matching files and uses **Network** in Yuri. The Node server supplies the shared room service and independent RA2 VM relay; static hosting requires those services deployed behind WSS. Native Yuri manages match readiness and start. Both Yuri download buttons open the supplied Google Drive location; the site does not automatically fetch the files. See [docs/YURI.md](docs/YURI.md) for provenance, hosting and verification limits.
 
 ## Start
 

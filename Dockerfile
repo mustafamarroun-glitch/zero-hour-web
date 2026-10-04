@@ -14,6 +14,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 COPY public ./public
 COPY tools/server.mjs ./tools/server.mjs
+COPY tools/yuri-relay ./tools/yuri-relay
 COPY --from=engine /opt/newshoes/WebAssembly/dist-threaded-release ./public/dist-threaded-release
 ENV HOST=0.0.0.0 PORT=8093
 EXPOSE 8093

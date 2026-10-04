@@ -1,10 +1,12 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs/promises');const path=require('node:path');const assert=require('node:assert/strict');
-(async()=>{
+runBrowserTest(async()=>{
  const report={version:'2.1.0',checks:[],errors:[],missing:[],started:new Date().toISOString(),scope:'Disposable Windows Chrome profile; real local archives and threaded-engine gameplay'};
  await fs.mkdir('output/playwright',{recursive:true});
- report.profile=`.local/version-21-browser-${Date.now()}`;
- const context=await chromium.launchPersistentContext(path.resolve(report.profile),{channel:'chrome',headless:true,acceptDownloads:true,viewport:{width:1440,height:900}});
+ report.profile='version-21-browser';
+ const context=await launchTestContext(chromium,path.resolve(report.profile),{channel:'chrome',headless:true,acceptDownloads:true,viewport:{width:1440,height:900}});
+ report.profile=context.testProfile.path;report.testProfile=context.testProfile;
  const page=await context.newPage();for(const previous of context.pages())if(previous!==page)await previous.close();let game;
  page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()===404)report.missing.push(r.url())});
  const timer=setInterval(()=>console.log('V2.1',report.stage),20000);
@@ -64,4 +66,4 @@ const fs=require('node:fs/promises');const path=require('node:path');const asser
   assert.equal(report.errors.length,0);assert.equal(report.missing.length,0);report.status='passed';
  }catch(error){report.status='failed';report.failure=error.stack;process.exitCode=1;await page.screenshot({path:'output/playwright/v21-failure.png'}).catch(()=>{});console.log('FAIL',error.message,await page.locator('#error').textContent().catch(()=>''));}
  finally{clearInterval(timer);await fs.writeFile('.local/version-21-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors,missing:report.missing},null,2));await context.close();}
-})();
+});

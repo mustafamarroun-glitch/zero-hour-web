@@ -1,8 +1,10 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs/promises');const path=require('node:path');const assert=require('node:assert/strict');
-(async()=>{
+runBrowserTest(async()=>{
  const report={version:'2.1.0',checks:[],errors:[],started:new Date().toISOString()};
  const previous=JSON.parse(await fs.readFile('.local/version-21-verification.json','utf8'));
- const context=await chromium.launchPersistentContext(path.resolve(previous.profile||'.local/version-21-browser'),{channel:'chrome',headless:true,viewport:{width:1440,height:900}});const page=await context.newPage();for(const old of context.pages())if(old!==page)await old.close();let game;
+ if(!previous.profile||!previous.testProfile?.retained)throw Error('Follow-up requires a v2.1 run with ZH_KEEP_TEST_PROFILE=1. Its report must name the retained profile.');
+ const context=await launchTestContext(chromium,'version-21-followup',{channel:'chrome',headless:true,viewport:{width:1440,height:900}},{reuseProfile:previous.profile});report.testProfile=context.testProfile;const page=await context.newPage();for(const old of context.pages())if(old!==page)await old.close();let game;
  page.on('pageerror',e=>report.errors.push(e.message));const timer=setInterval(()=>console.log('V2.1 final',report.stage),20000);
  const wait=async(label,fn,predicate,timeout=60000)=>{let last;const deadline=Date.now()+timeout;while(Date.now()<deadline){last=await fn();if(predicate(last))return last;await page.waitForTimeout(250)}throw Error(`${label}: ${JSON.stringify(last).slice(0,700)}`)};
  const rpc=(command,payload={})=>game.evaluate(([c,p])=>window.CnCPort.rpc(c,p),[command,payload]);
@@ -25,4 +27,4 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   await launch();await toolbar();await page.locator('#exitGame').click();await page.locator('#gameView').waitFor({state:'hidden',timeout:60000});report.checks.push('Relaunch after force-close works and exits normally');assert.equal(report.errors.length,0);report.status='passed';
  }catch(error){report.status='failed';report.failure=error.stack;process.exitCode=1;await page.screenshot({path:'output/playwright/v21-final-failure.png'}).catch(()=>{});console.log('FAIL',error.message)}
  finally{clearInterval(timer);await fs.writeFile('.local/version-21-followup-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors},null,2));await context.close()}
-})();
+});

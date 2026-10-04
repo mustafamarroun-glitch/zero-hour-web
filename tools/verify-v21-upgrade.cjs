@@ -1,7 +1,8 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 // Exercise an unchanged 2.0 site, then 2.1, at the same origin and profile.
 const {chromium}=require('playwright');
 const fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict'),{createServer}=require('node:http'),{createHash}=require('node:crypto');
-(async()=>{
+runBrowserTest(async()=>{
   const report={checks:[],errors:[],started:new Date().toISOString()};let url,server,siteRoot,context,page,game,saveName;
   const timer=setInterval(async()=>{console.log('V2.1 upgrade',report.stage);if(page&&!page.isClosed())console.log(await page.evaluate(()=>({status:document.getElementById('gameStatus')?.textContent,error:document.getElementById('error')?.textContent,game:!document.getElementById('gameView')?.hidden})).catch(e=>e.message));await fs.writeFile('.local/version-21-upgrade-progress.json',JSON.stringify(report,null,2));},20000);
   const wait=async(label,fn,predicate,timeout=180000)=>{let last;const deadline=Date.now()+timeout;while(Date.now()<deadline){last=await fn();if(predicate(last))return last;await new Promise(r=>setTimeout(r,250));}throw Error(`${label}: ${JSON.stringify(last).slice(0,1000)}`);};
@@ -30,8 +31,8 @@ const fs=require('node:fs/promises'),path=require('node:path'),assert=require('n
   };
   try{
     report.stage='Import on unchanged 2.0';await startServer('.local/v20-baseline/public');
-    report.profile=`.local/v21-upgrade-browser-${Date.now()}`;
-    context=await chromium.launchPersistentContext(path.resolve(report.profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900}});page=context.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));
+    report.profile='v21-upgrade-browser';
+    context=await launchTestContext(chromium,path.resolve(report.profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900}});report.profile=context.testProfile.path;report.testProfile=context.testProfile;page=context.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));
     await page.goto(url);await page.locator('#name').fill('UpgradeTest');await page.locator('#nameForm button').click();await page.locator('#folderInput').setInputFiles('.local/packaging/Zero-Hour-Browser-English');await page.locator('#lobby').waitFor({state:'visible',timeout:180000});
     const oldRoot=await page.evaluate(()=>window.ZeroHAssetLibrary.installedLibrary().root);await page.locator('#openSettings').click();await page.locator('#edgeScroll').uncheck();await page.locator('#music').fill('42');await page.locator('#closeSettings').click();
     report.stage='Create real native 2.0 save';await launch();await rpc('realEngineSetSkirmishMap',{mapName:'maps/alpine assault/alpine assault.map'});await rpc('realEngineSetSkirmishLocalTemplate',{templateName:'FactionGLA'});await native('SkirmishGameOptionsMenu.wnd:ButtonStart');await battlefield();
@@ -45,4 +46,4 @@ const fs=require('node:fs/promises'),path=require('node:path'),assert=require('n
     report.checks.push('Explicit game-file removal and full reimport preserve the real saved match, which loads again');assert.deepEqual(report.errors,[]);report.passed=true;
   }catch(error){report.failure=error.stack;process.exitCode=1;if(game)report.failureUi=await rpc('agentUiSnapshot').catch(e=>e.message);await page?.screenshot({path:'output/playwright/v21-upgrade-failure.png'}).catch(()=>{});}
   finally{clearInterval(timer);await context?.close();if(server)await stopServer();await fs.writeFile('.local/version-21-upgrade-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({passed:report.passed,failure:report.failure,checks:report.checks,errors:report.errors,nativeSave:report.nativeSave,simulation:report.simulation},null,2));}
-})();
+});

@@ -1,10 +1,11 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs/promises');const path=require('node:path');const http=require('node:http');
-(async()=>{
+runBrowserTest(async()=>{
  const report={errors:[],missing:[],scope:'Disposable Chrome profile, headerless static host, /zero-hour-web/ repository subpath'};
  const server=http.createServer(async(req,res)=>{try{if(req.url==='/zero-hour-web/storage-probe.html'){res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><title>Storage boundary probe</title>');return;}let file=path.resolve('public','.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname.replace(/^\/zero-hour-web/,'')));const root=path.resolve('public');if(!file.startsWith(root+path.sep)&&file!==root)throw Error('Forbidden');if((await fs.stat(file)).isDirectory())file=path.join(file,'index.html');const type={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.woff2':'font/woff2'}[path.extname(file)]||'application/octet-stream';res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-cache'});res.end(await fs.readFile(file));}catch{res.writeHead(404);res.end('Not found');}});
  await new Promise(r=>server.listen(8094,'127.0.0.1',r));let context;
  try{
-  context=await chromium.launchPersistentContext(path.resolve('.local/pages-isolation-profile'),{channel:'chrome',headless:true});const page=context.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()===404)report.missing.push(r.url())});
+  context=await launchTestContext(chromium,path.resolve('.local/pages-isolation-profile'),{channel:'chrome',headless:true});const page=context.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()===404)report.missing.push(r.url())});
   await page.goto('http://localhost:8094/zero-hour-web/storage-probe.html');await page.evaluate(async()=>{for(const key of Object.keys(localStorage))if(key.startsWith('zero-hour-web-v1:'))localStorage.removeItem(key);localStorage.setItem('other-product-preservation','keep');const root=await navigator.storage.getDirectory();await root.getDirectoryHandle('other-product-preservation',{create:true});});
   const initial=await page.goto('http://localhost:8094/zero-hour-web/');report.initialHeaders=initial.headers();
   await page.waitForFunction(()=>crossOriginIsolated&&navigator.serviceWorker.controller,null,{timeout:45000});await page.locator('#entry').waitFor({state:'visible'});
@@ -15,4 +16,4 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
   if(report.storageBoundary.directory!=='zero-hour-web-v1'||!report.storageBoundary.originalHidden||!report.storageBoundary.originalDirectory)throw Error('Shared-origin storage boundary failed');
   await page.goto('http://localhost:8094/zero-hour-web/storage-probe.html');report.originalAfterClear=await page.evaluate(()=>localStorage.getItem('other-product-preservation'));if(report.originalAfterClear!=='keep')throw Error('Scoped clear changed another product storage');
  }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;}finally{await fs.writeFile('.local/pages-isolation-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));if(context)await context.close();await new Promise(r=>server.close(r));}
-})();
+});

@@ -2,6 +2,14 @@
 
 Updated 2026-10-04. The source project's earlier results are context only; the following checks concern Zero Hour Web.
 
+## Yuri’s Revenge addition
+
+Local checks passed for navigation/importer at 1440px and 390px, incomplete-file errors, cross-origin isolation, focus and safe exit, existing cache/preference preservation, and session URL configuration. Actual player-owned import reached the original Single Player → Skirmish battlefield on The Alamo, with six native live local-player units, continuing frames and visually confirmed unit selection. That run had no page errors, missing resources or file uploads. Binary relay discovery/forwarding/session separation passed with synthetic traffic.
+
+After reboot, the launcher/relay checks passed again and two independent Chrome sessions entered a real native Network match through the site's compiled Yuri runtime and localhost:8093 relay. MCV deployment synchronized in both directions, with approximately 1.72/1.98-second observations, and simulation advanced through a 20-second observation without closed relay connections. This was same-PC, short-match acceptance. The test enters the runtime route directly; launcher invite configuration was checked separately. See [YURI.md](YURI.md) for browser-only INI preferences, read-only probes, reproducibility and initial verifier failures. Native evidence is `output/playwright/ra2-peer-discovery-IoSYny/result.json` and companion captures/performance reports; UI-only reports now use `.local/yuri-ui-verification.json`.
+
+Yuri sustained/complete matches, movement, save reload, audio correctness, mobile/Mac and separate-computer internet play remain unverified. Yuri has not been published.
+
 ## Version 2.1 acceptance
 
 - Actual browser removal deleted all installed archives and cleared the manifest. A simulated filesystem refusal retained the manifest and allowed retry. Reload returned to import while preserving commander identity, an app-local stored-data sentinel and another product's OPFS data.
@@ -64,6 +72,14 @@ Initial failures were corrected: the loading overlay's author CSS overrode `hidd
 Private evidence is under `.local/*verification.json` and `output/playwright/`. These files and gameplay captures are excluded from Git and hosting.
 
 ## Remaining gates
+
+### Yuri shared setup acceptance — October 4, 2026
+
+`node tools/verify-yuri-setup.cjs` passed 16 checks using the actual movie-free Desktop RAR and a nested DEFLATE ZIP from the same 166-file installation. Complete-folder and individual-file pickers also installed the real files and restored after reload. A quick-selection startup lock race was found and fixed by awaiting the initial storage check before import. Both archive import and replacement survived reload. The downloaded installation backup passed CRC and SHA-256 comparison against source for every entry, retaining music, all 53 map files and the required empty movie MIX. Cancelled backups/imports, malformed archives, simulated quota refusal and a synchronous delete failure after deletion was queued retained the previous library. Cross-tab locks blocked removal while files were held by a game. Confirmed removal survived reload while retaining commander, Yuri preferences, actual save-database/custom-map sentinels and unrelated OPFS files. Zero Hour preferences remained unchanged. No page errors, missing resources or uploads were observed in this Yuri run.
+
+The shared create-room UI exposed an eight-character code. A separate WebSocket peer using the actual installed content fingerprint joined with a matching runtime and internal relay code; a Zero Hour peer was rejected. This is room-service acceptance, not a new native multiplayer match. Launch rendered the original native Yuri menu from the website installation without a second picker, then cancel/confirmed exit returned correctly. The website audio/scroll values reached browser-local RA2MD.INI. Audible correctness and full gameplay remain outside these checks.
+
+Reports: `.local/yuri-setup-verification.json`, `.local/archive-safety-verification.json`, `.local/browser-verification.json`. The shared archive-safety suite passed nine cases, and Zero Hour's actual import, restored library and compiled engine boot passed after the shared controller changes. That boot report includes cancelled engine fetches on unload, so it is not a zero-network-failure or new full-match claim. Final captures compare Yuri entry/setup/library/settings with Zero Hour setup/settings at 1440px and 390px in `.impeccable/review`. These checks are local Windows Chrome acceptance; no publication or remote Drive archive validation occurred.
 
 Real Mac graphics, a completed multiplayer match on separate computers/networks, longer multiplayer reliability, a completed solo match, audible playback, second-device ZIP extraction/import and a fresh compiler rebuild remain pending. A menu, room list, fixture or checksum is not gameplay proof.
 

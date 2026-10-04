@@ -1,5 +1,9 @@
 # Runtime and product boundaries
 
+Both launchers use `public/app.mjs`, `style.css`, preferences, archive extraction and recovery controls. `public/index.html` is the canonical template; `tools/sync-launchers.mjs` generates `/yuri/index.html` with game-specific copy and links. `game-profiles.mjs` selects runtime, download and storage adapters. The checker rejects generated-page drift and packaging regenerates it.
+
+Yuri uses the separate RA2 VM runtime, an atomic IndexedDB file library and an independent WebSocket relay on `/yuri-<internal relay code>`. The shared `/rooms` service distinguishes game/runtime/content, exposes eight-character invite codes and assigns Yuri a separate 96-bit relay code. See [YURI.md](YURI.md) for implementation and verification limits. The Zero Hour architecture below remains its own engine/network path.
+
 The root page owns identity, importer, installed-library recovery, private room membership, local ZIP export and game utilities. A same-origin iframe owns each engine lifetime. Clean exit stops the paced engine loop, flushes saves, disconnects peers, shuts down the worker and removes the iframe. Relaunch creates a fresh runtime and remounts the retained local archives.
 
 Archive validation and OPFS storage reuse the inspected combined-English importer. The current profile is intentionally narrow: sentinel paths, archive bounds and complete content are checked. Matching filenames alone are insufficient. Multiplayer fingerprints hash every byte of every mounted archive with SHA-256 and combine hashes in name order. Fingerprints are session-cached by immutable installed-library root. No retail bytes leave the browser.

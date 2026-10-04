@@ -2,6 +2,7 @@
 node_modules/
 output/
 release/
+.impeccable/review/
 *.big
 *.bik
 *.sav

@@ -1,9 +1,12 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs/promises');const path=require('node:path');const assert=require('node:assert/strict');
-(async()=>{
+runBrowserTest(async()=>{
  const report={version:'2.0.0',checks:[],errors:[],missing:[],started:new Date().toISOString(),scope:'Fresh Windows Chrome profile; actual local ZIP and RAR packages; real threaded-engine skirmish'};
  await fs.mkdir('output/playwright',{recursive:true});
- const ctx=await chromium.launchPersistentContext(path.resolve('.local/version-2-browser'),{channel:'chrome',headless:true,viewport:{width:1440,height:900}});
+ if(process.env.ZH_V2_GAME_ONLY&&!process.env.ZH_PROFILE)throw Error('ZH_V2_GAME_ONLY requires ZH_PROFILE from a retained full test run.');
+ const ctx=await launchTestContext(chromium,path.resolve('.local/version-2-browser'),{channel:'chrome',headless:true,viewport:{width:1440,height:900}});
+ report.profile=ctx.testProfile.path;report.testProfile=ctx.testProfile;
  const page=ctx.pages()[0]||await ctx.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()===404)report.missing.push(r.url())});
  const timer=setInterval(()=>console.log('V2',report.stage),20000);let game;
  const rpc=(command,payload={})=>game.evaluate(([command,payload])=>window.CnCPort.rpc(command,payload),[command,payload]);
@@ -58,4 +61,4 @@ const fs=require('node:fs/promises');const path=require('node:path');const asser
   assert.equal(report.errors.length,0);assert.equal(report.missing.length,0);report.status='passed';
  }catch(e){report.status='failed';report.failure=e.stack;process.exitCode=1;await page.screenshot({path:'output/playwright/v2-failure.png'}).catch(()=>{});console.log('ERROR',e.message,await page.locator('#error').textContent().catch(()=>''))}
  finally{clearInterval(timer);report.checks=[...new Set(report.checks)];await fs.writeFile('.local/version-2-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors,missing:report.missing},null,2));await ctx.close()}
-})();
+});
