@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>GPU capability probe</title>
+<canvas width="64" height="64"></canvas><pre id="result"></pre>
+<script>
+const report = {passed:false, scope:'Chromium WebGL draw; not game or streaming performance'};
+try {
+  const gl = document.querySelector('canvas').getContext('webgl2', {preserveDrawingBuffer:true});
+  if (!gl) throw new Error('WebGL2 unavailable');
+  const debug = gl.getExtension('WEBGL_debug_renderer_info');
+  report.renderer = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+  gl.clearColor(1, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  const pixel = new Uint8Array(4); gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);
+  report.pixel = [...pixel];
+  report.passed = /nvidia/i.test(report.renderer) && !/swiftshader|llvmpipe|softpipe/i.test(report.renderer) && pixel.join() === '255,0,0,255';
+} catch (error) { report.error = error.message; }
+document.querySelector('#result').textContent = JSON.stringify(report);
+</script>

@@ -1,0 +1,4 @@
+ARG BASE_IMAGE=lscr.io/linuxserver/chromium:latest
+FROM ${BASE_IMAGE}
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN python3 -m pip install --no-cache-dir aiortc==1.14.0 av==16.0.1 mss==10.1.0 python-xlib==0.33

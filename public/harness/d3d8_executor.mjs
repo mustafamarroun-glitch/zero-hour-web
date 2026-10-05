@@ -70,7 +70,40 @@ export function createD3D8Executor(env) {
     preserveDrawingBuffer: env.preserveDrawingBuffer !== undefined
       ? Boolean(env.preserveDrawingBuffer)
       : true,
+    powerPreference: env.powerPreference === "high-performance" ? "high-performance" : "default",
   });
+  const webglMetadata = (() => {
+    const metadata = {
+      api: gl ? "webgl2" : "2d-fallback",
+      contextAttributes: gl?.getContextAttributes?.() ?? null,
+      renderer: null,
+      vendor: null,
+      version: null,
+      shadingLanguageVersion: null,
+    };
+    if (!gl) return metadata;
+    try {
+      const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+      metadata.renderer = gl.getParameter(debugInfo?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER);
+      metadata.vendor = gl.getParameter(debugInfo?.UNMASKED_VENDOR_WEBGL ?? gl.VENDOR);
+      metadata.version = gl.getParameter(gl.VERSION);
+      metadata.shadingLanguageVersion = gl.getParameter(gl.SHADING_LANGUAGE_VERSION);
+    } catch (_error) {
+      // Some browsers mask or reject renderer details; the API and attributes
+      // still identify the context path used by the game.
+    }
+    return metadata;
+  })();
+  if (harnessState?.graphics) {
+    harnessState.graphics = {
+      ...harnessState.graphics,
+      webglRenderer: webglMetadata.renderer,
+      webglVendor: webglMetadata.vendor,
+      webglVersion: webglMetadata.version,
+      webglShadingLanguageVersion: webglMetadata.shadingLanguageVersion,
+      webglContextAttributes: webglMetadata.contextAttributes,
+    };
+  }
   const s3tc = env.s3tc !== undefined
     ? env.s3tc
     : (gl ? gl.getExtension("WEBGL_compressed_texture_s3tc") : null);
@@ -108,11 +141,10 @@ function showWebglContextLostBanner() {
     banner.style.cssText = [
       "position:fixed", "top:0", "left:0", "right:0", "z-index:99999",
       "background:#8b0000", "color:#fff", "font:600 15px system-ui,sans-serif",
-      "padding:10px 14px", "text-align:center", "cursor:pointer",
+      "padding:10px 14px", "text-align:center",
     ].join(";");
     banner.textContent =
-      "Graphics context was lost (browser reclaimed the GPU) — tap here to reload the game.";
-    banner.addEventListener("click", () => globalThis.location.reload());
+      "Graphics context was lost. Use Exit game to close safely; reload cannot restore this match.";
     document.body.appendChild(banner);
   }
 }
@@ -123,13 +155,26 @@ canvas.addEventListener("webglcontextlost", (event) => {
   event.preventDefault();
   webglContextLost = true;
   webglContextLossAt = new Date().toISOString();
+  const lossDetails = {
+    at: webglContextLossAt,
+    ...webglMetadata,
+    canvas: { width: canvas.width, height: canvas.height },
+    drawingBuffer: gl ? { width: gl.drawingBufferWidth, height: gl.drawingBufferHeight } : null,
+    shaderTier: harnessState.graphics?.d3d8ShaderTier ?? null,
+  };
+  if (harnessState?.graphics) {
+    harnessState.graphics = {
+      ...harnessState.graphics,
+      contextLost: true,
+      contextLoss: lossDetails,
+    };
+  }
   try {
-    console.error("[cnc-port] WebGL context LOST at", webglContextLossAt,
-      "- canvas will be black until reload");
+    console.error("[cnc-port] WebGL context LOST", lossDetails);
   } catch (_error) { /* ignore */ }
   try { showWebglContextLostBanner(); } catch (_error) { /* ignore */ }
   try {
-    recordLog("webgl context lost", { at: webglContextLossAt });
+    recordLog("webgl context lost", lossDetails);
   } catch (_error) { /* recordLog not defined yet during early evaluation */ }
 });
 canvas.addEventListener("webglcontextrestored", () => {

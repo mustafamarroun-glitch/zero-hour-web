@@ -26,6 +26,14 @@ Use **Remove installed game** to remove this browser's installation while keepin
 
 ## Verification and release
 
+For one independent friend session streamed from this laptop to a Mac on the
+same Wi-Fi, see [docs/STREAMING.md](docs/STREAMING.md). The project now has a
+Windows Docker/WSL path using the NVIDIA D3D12 renderer and NVENC, plus an
+isolated remote-input desktop and WebRTC client. Local GPU rendering and
+encoding passed capability probes, and the capture-to-encoder stages held a
+60 FPS target for ten seconds. A real Zero Hour match, Mac playback and
+end-to-end sustained 60 FPS streaming are still unverified.
+
 See [docs/VERIFICATION.md](docs/VERIFICATION.md) for completed checks and remaining acceptance gates, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for runtime/network boundaries, and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for HTTPS publication and service setup.
 
 Run `npm run check`, then `npm run package`. Only `release/site` is the hosting package. `public/source` supplies corresponding source. `.local` and `output` are private evidence, disposable test profiles and local assets; do not publish them.

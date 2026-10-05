@@ -11,3 +11,4 @@ release/
 *.dll
 .env
 .env.*
+__pycache__/

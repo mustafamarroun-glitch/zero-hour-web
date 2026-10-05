@@ -1,7 +1,7 @@
 import {createServer} from 'node:http';
 import {readFile,stat} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
-import {randomBytes} from 'node:crypto';
+import {createHmac,randomBytes} from 'node:crypto';
 import {WebSocketServer} from 'ws';
 import {createRequire} from 'node:module';
 const {createGameRelay}=createRequire(import.meta.url)('./yuri-relay/relay.cjs');
@@ -16,7 +16,21 @@ const server=createServer(async(req,res)=>{
       res.writeHead(200,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,service:'yuri-relay',...yuriRelay.getHealth()}));return;
     }
     if(url.pathname==='/network-config.json'){
-      res.writeHead(200,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({rooms:process.env.ROOMS_URL||'/rooms',signaling:process.env.SIGNALING_URL||'/nostr',iceServers:JSON.parse(process.env.ICE_SERVERS||'[]'),runtime:'3ccaa0e9-compiled-combined-v6'}));return;
+      try{
+        let iceServers=JSON.parse(process.env.ICE_SERVERS||'[]');
+        if(process.env.TURN_URL||process.env.TURN_SECRET_FILE){
+          if(!process.env.TURN_URL||!process.env.TURN_SECRET_FILE)throw Error('TURN_URL and TURN_SECRET_FILE must both be configured');
+          const secret=(await readFile(process.env.TURN_SECRET_FILE,'utf8')).trim();
+          if(secret.length<32)throw Error('The private TURN secret is missing or too short');
+          const username=`${Math.floor(Date.now()/1000)+12*60*60}:zhweb-${randomBytes(8).toString('hex')}`;
+          const credential=createHmac('sha1',secret).update(username).digest('base64');
+          iceServers=[...iceServers,{urls:[process.env.TURN_URL,'turn:127.0.0.1:3478?transport=udp'],username,credential}];
+        }
+        res.writeHead(200,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({rooms:process.env.ROOMS_URL||'/rooms',signaling:process.env.SIGNALING_URL||'/nostr',iceServers,runtime:'3ccaa0e9-compiled-combined-v6'}));return;
+      }catch(error){
+        console.error(`Zero Hour TURN configuration error: ${error.message}`);
+        res.writeHead(503,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({error:'The private game relay is not ready. Restart the Zero Hour streaming session.'}));return;
+      }
     }
     let path=resolve(root,'.'+decodeURIComponent(url.pathname));
     if(path!==root&&!path.startsWith(root+'/')&&!path.startsWith(root+'\\'))throw Error('Forbidden');

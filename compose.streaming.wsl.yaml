@@ -1,0 +1,69 @@
+name: zero-hour-streaming
+services:
+  friend:
+    image: ${ZH_STREAM_IMAGE:?Build and test the WSL streaming image}
+    hostname: zero-hour-stream
+    entrypoint: [python3, /app/tools/streaming/wsl-session.py]
+    environment:
+      ZH_STREAM_LAN_IP: ${ZH_STREAM_LAN_IP:?Select the private LAN address}
+      ZH_STREAM_WIDTH: "1280"
+      ZH_STREAM_HEIGHT: "720"
+      ZH_STREAM_BITRATE: "8000000"
+      NVIDIA_DRIVER_CAPABILITIES: all
+      LD_LIBRARY_PATH: /usr/lib/wsl/lib
+      GALLIUM_DRIVER: d3d12
+      MESA_LOADER_DRIVER_OVERRIDE: d3d12
+      MESA_D3D12_DEFAULT_ADAPTER_NAME: NVIDIA
+    gpus: all
+    devices:
+      - /dev/dxg:/dev/dxg
+    ports:
+      - "${ZH_STREAM_LAN_IP}:3001:3001"
+      - "${ZH_STREAM_LAN_IP}:50000:50000/udp"
+      - "${ZH_STREAM_LAN_IP}:3478:3478/udp"
+      - "${ZH_STREAM_LAN_IP}:49160-49223:49160-49223/udp"
+      - "127.0.0.1:8098:8098"
+    volumes:
+      - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro
+      - /usr/lib/wsl/drivers:/usr/lib/wsl/drivers:ro
+      - ./.local/streaming/friend:/config
+      - ./.local/streaming/password:/run/secrets/stream-password:ro
+      - ./tools/streaming:/app/tools/streaming:ro
+      - ./public/fonts:/app/public/fonts:ro
+      - ${ZH_STREAM_GAME_DIR:?Select the local Data directory}:/mnt/zero-hour:ro
+    shm_size: 1gb
+    mem_limit: 6g
+    restart: "no"
+  site:
+    image: ${ZH_STREAM_SITE_IMAGE:?Pin the local Node image}
+    network_mode: service:friend
+    depends_on:
+      - friend
+    working_dir: /app
+    command: [node, tools/server.mjs]
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8098"
+      SITE_ROOT: /app/public
+      ALLOWED_ORIGINS: http://localhost:8098,http://127.0.0.1:8098
+      ICE_SERVERS: "[]"
+      TURN_URL: "${ZH_STREAM_TURN_URL:-}"
+      TURN_SECRET_FILE: "${ZH_STREAM_TURN_SECRET_FILE:-}"
+    volumes:
+      - ./public:/app/public:ro
+      - ./tools:/app/tools:ro
+      - ./node_modules:/app/node_modules:ro
+      - ./.local/streaming/turn-secret:/run/secrets/turn-secret:ro
+    mem_limit: 512m
+    restart: "no"
+  turn:
+    image: ${ZH_STREAM_TURN_IMAGE:?Pin the Coturn image before starting}
+    network_mode: service:friend
+    depends_on:
+      - friend
+    entrypoint: [turnserver]
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    volumes:
+      - ./.local/streaming/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    mem_limit: 256m
+    restart: "no"

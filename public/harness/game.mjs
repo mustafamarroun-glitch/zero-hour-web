@@ -3,9 +3,18 @@ import {assetLibrary} from './launcher-asset-manager.mjs';
 import {VERSION} from '../preferences.mjs';
 import {runRuntimeShutdownSequence,runtimeShutdownWarning,settleWithin} from './runtime-shutdown-sequence.mjs';
 const params=new URLSearchParams(location.search), name=params.get('commander');
-let ready=false,exiting=false,exitPromise;
+let ready=false,exiting=false,exitPromise,contextLossReported=false;
 let roomTimer,healthTimer,healthBusy=false,displayBusy=false,showPerformance=false;
 const canvas=document.querySelector('#viewport');
+function reportWebglContextLoss(details){
+  if(contextLossReported)return;
+  contextLossReported=true;
+  const message='The browser lost the game graphics context. This screen cannot recover in place; use Exit game to close safely.';
+  report(message);
+  parent.postMessage({type:'zh-webgl-context-lost',details:details||null},location.origin);
+}
+canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();reportWebglContextLoss({at:new Date().toISOString(),canvas:{width:canvas.width,height:canvas.height}})});
+window.addEventListener('cncport:webglcontextlost',event=>reportWebglContextLoss(event.detail));
 let display={width:Number(params.get('width'))||1280,height:Number(params.get('height'))||720};
 if(![1024,1280,1600,1920].includes(display.width)&&!(display.width>=800&&display.width<=1920))display.width=1280;
 if(!(display.height>=600&&display.height<=1080))display.height=720;

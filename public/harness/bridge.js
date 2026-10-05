@@ -317,12 +317,14 @@ const contextPreserveDrawingBuffer = (() => {
 // worker receives a separate OffscreenCanvas for synchronous D3D8 semantics.
 const mainRealmOwnsD3D8 = !cncPortThreadedMode || cncPortWebXrVrRequested;
 const executorCanvas = mainRealmOwnsD3D8 ? canvas : document.createElement("canvas");
+const graphicsPowerPreference = cncPortPlayablePage() ? "high-performance" : "default";
 const gl = mainRealmOwnsD3D8 ? canvas.getContext("webgl2", {
   alpha: false,
   antialias: false,
   depth: true,
   stencil: true,
   preserveDrawingBuffer: contextPreserveDrawingBuffer,
+  powerPreference: graphicsPowerPreference,
 }) : null;
 const s3tc = gl ? gl.getExtension("WEBGL_compressed_texture_s3tc") : null;
 
@@ -1340,6 +1342,14 @@ function createThreadedEngineController() {
       case "networkDiagnostic":
         recordNetworkDiagnostic(msg.event);
         return;
+      case "webglContextLost":
+        threadedLog("webgl context lost", msg.details ?? null);
+        try {
+          window.dispatchEvent(new CustomEvent("cncport:webglcontextlost", {
+            detail: msg.details ?? null,
+          }));
+        } catch (_error) { /* no DOM event support */ }
+        return;
       case "status":
         applyThreadedStatus(msg);
         return;
@@ -1522,6 +1532,7 @@ function createThreadedEngineController() {
           frameCommandQueue: threadedWorkerFrameCommandQueue(),
           liteVertexMirrors: threadedWorkerLiteVertexMirrors(),
           preserveDrawingBuffer: contextPreserveDrawingBuffer,
+          powerPreference: graphicsPowerPreference,
           shaderTier: threadedWorkerShaderTier(),
           udpBridge: threadedUdpBridge,
           webxrD3D8Bridge,

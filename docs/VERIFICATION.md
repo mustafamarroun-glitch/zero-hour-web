@@ -95,7 +95,7 @@ An earlier default-renderer LAN run failed during native menu entry before the m
 
 ## Separate-device acceptance
 
-Use matching compatible archives on both computers. Import independently on the deployed HTTPS origin. On Windows Chrome and Mac Chrome, record exact browser version, macOS version, GPU and hardware-acceleration state. First run Alpine Assault solo against one Easy Army, select/move a worker, and complete a building. Capture a local diagnostic download while the actual battlefield is visible. If Mac renders black/white or corrupted geometry, repeat with Compatibility mode and then Shader effects and preserve both reports/captures.
+Use matching compatible archives on both computers. Import independently on the deployed HTTPS origin. On Windows Chrome and Mac Chrome, record exact browser version, macOS version, GPU and hardware-acceleration state. For dual-GPU MacBook Pros, connect power and test with automatic graphics switching disabled. First run Alpine Assault solo against one Easy Army, select/move a worker, and complete a building. Capture a local diagnostic download while the actual battlefield is visible. If Mac renders black/white or corrupted geometry, try the low-GPU preset and preserve its report/capture before comparing Compatibility mode and Shader effects. If WebGL context loss occurs, use Exit game instead of refreshing, then preserve the diagnostics.
 
 After both solo gates pass:
 

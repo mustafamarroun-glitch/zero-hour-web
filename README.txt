@@ -172,9 +172,15 @@ TROUBLESHOOTING
   normal browser profile and retry the import.
 - Game fails to load: use Chrome with hardware acceleration, keep the server
   running for local play, and use the exact HTTPS or localhost address.
-- Black, white or corrupted graphics: try "Compatibility", then "Shader
-  effects" in the Graphics control. Download Diagnostics and record your
-  browser version, operating system and GPU. Mac gameplay is unverified.
+- Black, white, corrupted or unstable graphics: on a dual-GPU MacBook Pro,
+  connect power and turn off automatic graphics switching in System Settings →
+  Battery → Options, then fully quit and reopen the browser. Zero Hour requests
+  the high-performance GPU where supported; Diagnostics reports the chosen
+  renderer. In game Settings, choose "Try low-GPU settings" before relaunching.
+  If the picture goes black,
+  download Diagnostics and use Exit game; refreshing cannot restore a lost
+  graphics context. Record the browser version, operating system and GPU. Mac
+  gameplay remains unverified.
 - Room connection fails: the room/signaling service may be offline. On local
   play, check the npm start terminal; on the published site, its temporary
   service/tunnel must be running. Solo skirmish remains available.

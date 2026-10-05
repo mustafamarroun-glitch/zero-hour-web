@@ -70,6 +70,9 @@ export default async function setupEngineRealm({ canvas, Module, realm, options 
     if (logs.length > LOG_LIMIT) {
       logs.splice(0, logs.length - LOG_LIMIT);
     }
+    if (message === "webgl context lost") {
+      postToMain({ cmd: "webglContextLost", details: data ?? null });
+    }
   }
 
   // ---- unsolicited worker->main channel -------------------------------------
@@ -117,6 +120,7 @@ export default async function setupEngineRealm({ canvas, Module, realm, options 
     getHeapF32: () => Module.HEAPF32 ?? null,
     getHeapF64: () => Module.HEAPF64 ?? null,
     preserveDrawingBuffer: opts.preserveDrawingBuffer === true,
+    powerPreference: opts.powerPreference === "high-performance" ? "high-performance" : "default",
   });
   let installedD3D8Hooks = d3d8Hooks;
   let webXrD3D8Recorder = null;
@@ -1161,6 +1165,11 @@ export default async function setupEngineRealm({ canvas, Module, realm, options 
       // from the main realm.
       graphics: {
         renderer: realmState.graphics?.webglRenderer ?? null,
+        vendor: realmState.graphics?.webglVendor ?? null,
+        version: realmState.graphics?.webglVersion ?? null,
+        shadingLanguageVersion: realmState.graphics?.webglShadingLanguageVersion ?? null,
+        contextAttributes: realmState.graphics?.webglContextAttributes ?? null,
+        contextLoss: realmState.graphics?.contextLoss ?? null,
         d3d8Perf: typeof d3d8Diag?.d3d8PerfSummary === "function"
           ? d3d8Diag.d3d8PerfSummary()
           : null,

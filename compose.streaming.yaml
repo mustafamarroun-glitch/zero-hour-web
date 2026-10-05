@@ -1,0 +1,90 @@
+name: zero-hour-streaming
+services:
+  friend:
+    image: ${ZH_STREAM_IMAGE:?Run the GPU preflight to pin the tested image}
+    hostname: zero-hour-stream
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Asia/Beirut
+      NVIDIA_DRIVER_CAPABILITIES: all
+      CUSTOM_USER: saddam
+      FILE__PASSWORD: /run/secrets/stream-password
+      CHROME_CLI: "--kiosk http://localhost:8098/ --autoplay-policy=no-user-gesture-required --disable-software-rasterizer --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1"
+      PIXELFLUX_WAYLAND: "true"
+      AUTO_GPU: nvidia
+      SELKIES_MODE: webrtc
+      SELKIES_WEBRTC_UDP_MUX_PORT: "50000"
+      SELKIES_WEBRTC_PUBLIC_IP: ${ZH_STREAM_LAN_IP:?Select a private LAN address}
+      SELKIES_WEBRTC_ICE_LITE: "true"
+      SELKIES_RTC_CONFIG_JSON: /opt/zero-hour-streaming/rtc.json
+      SELKIES_ENCODER: h264enc
+      SELKIES_USE_CPU: "false|locked"
+      SELKIES_FRAMERATE: "60-60"
+      SELKIES_RATE_CONTROL_MODE: cbr
+      SELKIES_VIDEO_BITRATE: "8000,4000-10000"
+      SELKIES_VIDEO_STREAMING_MODE: "true|locked"
+      SELKIES_VIDEO_FULLCOLOR: "false|locked"
+      SELKIES_USE_PAINT_OVER_QUALITY: "false|locked"
+      SELKIES_MANUAL_WIDTH: "1280"
+      SELKIES_MANUAL_HEIGHT: "720"
+      SELKIES_ENABLE_RESIZE: "false|locked"
+      SELKIES_SECOND_SCREEN: "false|locked"
+      SELKIES_WEBRTC_PACER: "true"
+      SELKIES_CONGESTION_CONTROL: "true"
+      SELKIES_ENABLE_CLIPBOARD: "false|locked"
+      SELKIES_FILE_TRANSFERS: none
+      SELKIES_ENABLE_SHARING: "false|locked"
+      SELKIES_COMMAND_ENABLED: "false|locked"
+      SELKIES_PRINTING_ENABLED: "false|locked"
+      SELKIES_UI_TITLE: Zero Hour
+      NO_GAMEPAD: "true"
+      NO_WEBCAM: "true"
+      HARDEN_DESKTOP: "true"
+      HARDEN_OPENBOX: "true"
+    gpus: all
+    ports:
+      - "${ZH_STREAM_LAN_IP:?Select a private LAN address}:3001:3001"
+      - "${ZH_STREAM_LAN_IP:?Select a private LAN address}:50000:50000/udp"
+      - "${ZH_STREAM_LAN_IP:?Select a private LAN address}:3478:3478/udp"
+      - "${ZH_STREAM_LAN_IP:?Select a private LAN address}:49160-49223:49160-49223/udp"
+      - "127.0.0.1:8098:8098"
+    volumes:
+      - ./.local/streaming/friend:/config
+      - ./.local/streaming/password:/run/secrets/stream-password:ro
+      - ./tools/streaming/rtc.json:/opt/zero-hour-streaming/rtc.json:ro
+      - ${ZH_STREAM_GAME_DIR:?Select the local Zero Hour Data directory}:/mnt/zero-hour:ro
+    shm_size: 1gb
+    mem_limit: 6g
+    restart: "no"
+  site:
+    image: ${ZH_STREAM_SITE_IMAGE:?Pin a Node 22 image before starting}
+    network_mode: service:friend
+    working_dir: /app
+    command: [node, tools/server.mjs]
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8098"
+      SITE_ROOT: /app/public
+      ALLOWED_ORIGINS: http://localhost:8098,http://127.0.0.1:8098
+      ICE_SERVERS: "[]"
+      TURN_URL: "${ZH_STREAM_TURN_URL:-}"
+      TURN_SECRET_FILE: "${ZH_STREAM_TURN_SECRET_FILE:-}"
+    volumes:
+      - ./public:/app/public:ro
+      - ./tools:/app/tools:ro
+      - ./node_modules:/app/node_modules:ro
+      - ./.local/streaming/turn-secret:/run/secrets/turn-secret:ro
+    mem_limit: 512m
+    restart: "no"
+  turn:
+    image: ${ZH_STREAM_TURN_IMAGE:?Pin the Coturn image before starting}
+    network_mode: service:friend
+    depends_on:
+      - friend
+    entrypoint: [turnserver]
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    volumes:
+      - ./.local/streaming/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    mem_limit: 256m
+    restart: "no"
