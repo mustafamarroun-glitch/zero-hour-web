@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {rate,hostSnapshot,readMarker,buildReport} from './report.mjs';
+assert.equal(rate(60,0,1),60);
+for(const values of [[undefined,0,1],[5,6,1],[1,0,0],[NaN,0,1]])assert.equal(rate(...values),null);
+const host=hostSnapshot({sampleTimeMs:1000,encoding:{encoder:'h264_nvenc',encodedFrames:12,error:'secret'},password:'secret',sdp:'secret',outbound:{bytesSent:800,address:'secret'}});
+assert.equal(host.encoding.error,true);assert.equal(host.encoding.encodedFrames,12);
+assert.ok(!JSON.stringify(host).includes('secret'));
+assert.equal(readMarker(new Uint8ClampedArray(48*48*4)),null);
+const report=buildReport({sessionId:'fixture',startedAt:'fixture',browser:{},samples:[{atMs:0,decodedFps:null},{atMs:1000,decodedFps:60}],probes:[{status:'unavailable',latencyMs:null,reason:'fixture'}]});
+assert.equal(report.summary.decodedFps.count,1);assert.equal(report.summary.displayedFps.mean,null);
+assert.equal(report.inputToVisibleResponse.latencyMs.count,0);assert.equal(report.verification.macGameplayProven,false);
+console.log('Report counter-reset, missing-data, privacy and unavailable-latency checks passed.');

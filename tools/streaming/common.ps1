@@ -48,7 +48,7 @@ function Write-ZeroHourTurnConfig([string]$Docker, [string]$Root, [string]$LanAd
         'fingerprint', 'use-auth-secret', "static-auth-secret=$taskSecret", 'realm=zero-hour-web',
         "listening-ip=127.0.0.1", "listening-ip=$taskInternalAddress", "relay-ip=$taskInternalAddress", "external-ip=$LanAddress/$taskInternalAddress",
         "allowed-peer-ip=$LanAddress", "allowed-peer-ip=$taskInternalAddress",
-        'listening-port=3478', 'min-port=49160', 'max-port=49223',
+        'listening-port=3478', 'min-port=21000', 'max-port=21063',
         'no-tcp', 'no-tls', 'no-tcp-relay', 'no-multicast-peers', 'stale-nonce=600', 'log-file=stdout'
     )
     $taskLines | Set-Content -LiteralPath (Join-Path $Root '.local\streaming\turnserver.conf') -Encoding ascii

@@ -42,7 +42,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Could not pin the official Coturn image to its
 $taskPasswordPath = Join-Path $taskState 'password'
 if (!$CheckOnly) {
     New-Item -ItemType Directory -Force -Path (Join-Path $taskState 'friend') | Out-Null
-    [IO.File]::WriteAllText($taskPasswordPath, '0000', [Text.UTF8Encoding]::new($false))
+    if (!(Test-Path -LiteralPath $taskPasswordPath) -or (Get-Content -LiteralPath $taskPasswordPath -Raw).Trim().Length -lt 24) {
+        $taskPasswordBytes = New-Object byte[] 24
+        $taskPasswordRng = [Security.Cryptography.RandomNumberGenerator]::Create()
+        try { $taskPasswordRng.GetBytes($taskPasswordBytes) } finally { $taskPasswordRng.Dispose() }
+        [IO.File]::WriteAllText($taskPasswordPath, [Convert]::ToBase64String($taskPasswordBytes).Replace('+','-').Replace('/','_'), [Text.UTF8Encoding]::new($false))
+    }
 }
 $taskTurnSecretPath = Join-Path $taskState 'turn-secret'
 if (!(Test-Path -LiteralPath $taskTurnSecretPath)) {
@@ -53,7 +58,7 @@ if (!(Test-Path -LiteralPath $taskTurnSecretPath)) {
 }
 $taskTurnConfigPath = Join-Path $taskState 'turnserver.conf'
 if (!(Test-Path -LiteralPath $taskTurnConfigPath)) {
-    @('fingerprint','use-auth-secret','static-auth-secret=not-started','realm=zero-hour-web','listening-ip=127.0.0.1','relay-ip=127.0.0.1','external-ip=127.0.0.1/127.0.0.1','listening-port=3478','min-port=49160','max-port=49223','no-tcp','no-tls','no-tcp-relay','no-multicast-peers','log-file=stdout') | Set-Content -LiteralPath $taskTurnConfigPath -Encoding ascii
+    @('fingerprint','use-auth-secret','static-auth-secret=not-started','realm=zero-hour-web','listening-ip=127.0.0.1','relay-ip=127.0.0.1','external-ip=127.0.0.1/127.0.0.1','listening-port=3478','min-port=21000','max-port=21063','no-tcp','no-tls','no-tcp-relay','no-multicast-peers','log-file=stdout') | Set-Content -LiteralPath $taskTurnConfigPath -Encoding ascii
 }
 $taskGame = (Resolve-Path -LiteralPath $GameDirectory).Path.Replace('\','/')
 if ($taskGame.Contains("'") -or $taskGame.Contains("`n") -or $taskGame.Contains("`r")) { throw 'The game directory cannot contain quotes or line breaks.' }
@@ -74,7 +79,7 @@ Test-ZeroHourTurnDataChannel -Docker $taskDocker -Root $PSScriptRoot
 Wait-ZeroHourChromium -Docker $taskDocker -Root $PSScriptRoot
 Write-Host 'Zero Hour streaming services started; gameplay performance is not yet verified.'
 Write-Host 'You: open http://localhost:8098/ in your Windows browser.'
-Write-Host "Friend: open https://${taskLan}:3001/ on the same Wi-Fi. Username: saddam; password: 0000"
+Write-Host "Friend: open https://${taskLan}:3001/ on the same Wi-Fi. Username: saddam. Read the private password file below."
 Write-Host "Private password file: $taskPasswordPath"
 Write-Host 'Inside the streamed browser, import /mnt/zero-hour once. Both players use matching game files and join the same room.'
 Write-Host 'Select 1280 x 720 in both game sessions to match the low-latency stream. Check Mac decoded/displayed FPS and RTT during a real match.'

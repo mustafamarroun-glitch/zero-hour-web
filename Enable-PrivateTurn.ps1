@@ -44,10 +44,10 @@ $taskEnvLines += 'ZH_STREAM_TURN_SECRET_FILE='
 
 $taskConfigPath = Join-Path $taskState 'turnserver.conf'
 if (!(Test-Path -LiteralPath $taskConfigPath)) {
-    @('fingerprint','use-auth-secret','static-auth-secret=not-started','realm=zero-hour-web','listening-ip=127.0.0.1','relay-ip=127.0.0.1','external-ip=127.0.0.1/127.0.0.1','listening-port=3478','min-port=49160','max-port=49223','no-tcp','no-tls','no-tcp-relay','no-multicast-peers','log-file=stdout') | Set-Content -LiteralPath $taskConfigPath -Encoding ascii
+    @('fingerprint','use-auth-secret','static-auth-secret=not-started','realm=zero-hour-web','listening-ip=127.0.0.1','relay-ip=127.0.0.1','external-ip=127.0.0.1/127.0.0.1','listening-port=3478','min-port=21000','max-port=21063','no-tcp','no-tls','no-tcp-relay','no-multicast-peers','log-file=stdout') | Set-Content -LiteralPath $taskConfigPath -Encoding ascii
 }
 Invoke-ZeroHourCompose -Docker $taskDocker -Root $PSScriptRoot -Arguments @('config','--quiet')
-[IO.File]::WriteAllText((Join-Path $taskState 'password'), '0000', [Text.UTF8Encoding]::new($false))
+if (!(Test-Path -LiteralPath (Join-Path $taskState 'password'))) { throw 'The private streaming password is missing. Run Start-Streaming.ps1.' }
 Write-Host 'Updating the stream container to publish the laptop-local UDP relay ports; your friend will need to reconnect.'
 Invoke-ZeroHourCompose -Docker $taskDocker -Root $PSScriptRoot -Arguments @('up','-d','--force-recreate','friend','site')
 Write-ZeroHourTurnConfig -Docker $taskDocker -Root $PSScriptRoot -LanAddress $taskLan

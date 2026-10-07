@@ -1,5 +1,5 @@
 ZERO HOUR WEB - PROJECT BRIEF AND HOW TO PLAY
-Updated: 4 October 2026
+Updated: 7 October 2026
 
 PROJECT BRIEF
 
@@ -222,6 +222,21 @@ README.md             - Technical overview and provenance.
 docs/VERIFICATION.md  - Recorded checks and remaining gameplay tests.
 docs/DEPLOYMENT.md    - Hosting and multiplayer service setup.
 docs/ARCHITECTURE.md  - Engine, networking and local-storage design.
+
+STREAM GAME (VERSION 2.2)
+
+Choose Stream game in the website header. Paste your host's HTTPS address
+or open their website invite. Enter the host's private login on the receiver,
+choose Internet / HTTPS for a remote connection, then Connect. Click the
+picture to control the game. No game-file import is needed on your device.
+
+Host: start Docker Desktop, then double-click
+Start Zero Hour Internet Streaming.cmd in this project folder.
+Share the private .local/streaming/INTERNET-INVITE.txt with your friend.
+Keep the laptop on and awake. Stop Zero Hour Streaming closes the stream
+and its public tunnel while retaining imported files, profiles and saves.
+Internet playback adds buffering; remote gameplay and latency need a real
+separate-device test. See docs/STREAMING.md for setup and verification.
 
 Developer checks: npm run check
 Build a hosting package: npm run package (output: release/site)

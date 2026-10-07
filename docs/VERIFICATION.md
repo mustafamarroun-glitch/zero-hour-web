@@ -1,6 +1,49 @@
 # Independent acceptance record
 
-Updated 2026-10-04. The source project's earlier results are context only; the following checks concern Zero Hour Web.
+Updated 2026-10-07. The source project's earlier results are context only; the following checks concern Zero Hour Web.
+
+## Version 2.2 Internet streaming
+
+The actual Windows/WSL startup passed NVIDIA rendering, Chromium WebGL,
+NVENC and private relay-only game data-channel exchange. Its Internet
+encoder preflight captured a two-second isolated desktop sample containing
+60 H.264 video frames and AAC audio, with both tracks starting at zero and
+approximately two-second durations; FFmpeg decoded both tracks successfully.
+This is component evidence, not native gameplay or physical audio acceptance.
+
+Chrome 154 on this PC decoded the real 1280 × 720 GPU stream through a
+Cloudflare public HTTPS tunnel using the low-bandwidth 30 FPS preset. The
+short observation advanced 4.02 seconds and decoded 120 frames. A mouse move
+sent through that public receiver reached the expected coordinates in the
+isolated X11 display. Unauthenticated HTTP/WebSocket requests, cross-origin
+POST/WebSocket requests and a second concurrent receiver were rejected.
+Disconnect and fresh reconnect passed. The bounded test then stopped the
+tracked public tunnel and all three project streaming containers, retaining
+imports, profiles and saves. Private evidence:
+`.local/streaming/internet-verification/public.json` and receiver capture under
+`.impeccable/review/stream-public-receiver.png`.
+
+Local HTTPS receiver playback also passed. Website checks covered Stream game
+navigation without a commander/import, invalid-address recovery, invite
+prefill and a 390px layout without horizontal overflow. The desktop/mobile
+interface review's SVG-arrow fix was scored resolved; the extension retained
+the existing visual system. Existing synthetic WebRTC diagnostic-report tests
+still passed, including three video-marker probes, cancelled recordings,
+reconnects, unavailable metrics and privacy filtering. Script syntax, pinned
+engine/source checksums, PowerShell/Python parsing and packaging passed.
+
+Early checks exposed unaligned video/audio startup clocks, Windows-excluded
+UDP ranges and public upload limits. Frame clocks now start together, the LAN
+ports avoid those exclusions, slow clients release their encoder/session slot,
+and Internet offers lower-bandwidth presets. Tunnel startup waits for the
+public endpoint's actual authentication challenge before printing an invite.
+
+This receiver was on the hosting PC using the public network path. A separate
+computer/network, a Mac decoder, full two-player match, physical audio and
+input-to-picture gameplay latency remain unverified. The 720p60 Internet
+preset is available but has no successful WAN performance acceptance on this
+connection. HTTPS streaming remains experimental, with temporary per-start
+invites and a host laptop that must remain on during play.
 
 ## Yuri’s Revenge addition
 

@@ -28,11 +28,14 @@ from aiortc import MediaStreamTrack, RTCBundlePolicy, RTCConfiguration, RTCPeerC
 from Xlib import X, XK, display
 from Xlib.ext import xtest
 import nvenc
+from importlib import import_module
+DiagnosticMarker = import_module('diagnostic-marker').DiagnosticMarker
+internet = import_module('internet-transport')
 
 LAN_IP = os.environ['ZH_STREAM_LAN_IP']
 STREAM_WIDTH = int(os.environ.get('ZH_STREAM_WIDTH', '1280'))
 STREAM_HEIGHT = int(os.environ.get('ZH_STREAM_HEIGHT', '720'))
-UDP_PORT = 50000
+UDP_PORT = 21064
 USERNAME = 'saddam'
 if not ipaddress.ip_address(LAN_IP).is_private:
     raise RuntimeError('A private LAN IPv4 address is required')
@@ -71,6 +74,8 @@ class DesktopVideo(VideoStreamTrack):
         self.start_time = None
         self.frames = 0
         self.capture_ms = 0
+        self.captured_frames = 0
+        self.marker = DiagnosticMarker()
 
     def capture(self):
         if self.framebuffer is None:
@@ -89,6 +94,8 @@ class DesktopVideo(VideoStreamTrack):
         frame = av.VideoFrame(STREAM_WIDTH, STREAM_HEIGHT, 'bgr0')
         frame.planes[0].update(pixels)
         pixels.release()
+        self.marker.paint(frame.planes[0], frame.planes[0].line_size)
+        self.captured_frames += 1
         self.capture_ms = (time.perf_counter() - started) * 1000
         return frame
 
@@ -182,7 +189,7 @@ class RemoteInput:
         if kind == 'release':
             self.release()
         elif kind == 'move':
-            xtest.fake_input(self.x, X.MotionNotify, x=max(0,min(1919,int(data['x']))), y=max(0,min(1079,int(data['y']))))
+            xtest.fake_input(self.x, X.MotionNotify, x=max(0,min(STREAM_WIDTH-1,int(data['x']))), y=max(0,min(STREAM_HEIGHT-1,int(data['y']))))
         elif kind == 'button':
             button = {0:1, 1:2, 2:3}.get(data.get('button'))
             if button:
@@ -217,7 +224,7 @@ async def authenticate(request, handler):
     supplied = request.headers.get('Authorization', '')
     if not hmac.compare_digest(supplied, 'Basic ' + expected):
         return web.Response(status=401, headers={'WWW-Authenticate':'Basic realm="Zero Hour"'}, text='Use the private streaming credentials.')
-    if request.method == 'POST' and request.headers.get('Origin') != f'https://{request.host}':
+    if (request.method == 'POST' or request.path == '/stream-ws') and request.headers.get('Origin') != f'https://{request.host}':
         raise web.HTTPForbidden(text='Open the connection page directly.')
     response = await handler(request)
     response.headers['Cache-Control'] = 'no-store'
@@ -227,7 +234,7 @@ async def authenticate(request, handler):
 
 async def offer(request):
     global INPUT, VIDEO
-    if PEERS:
+    if PEERS or internet.SESSIONS:
         raise web.HTTPConflict(text='A friend is already connected. Disconnect that session first.')
     try:
         body = await request.json()
@@ -273,7 +280,11 @@ async def offer(request):
         @channel.on('message')
         def message(data):
             try:
-                input_handler.handle(data)
+                if isinstance(data, str) and len(data) <= 512:
+                    command = json.loads(data)
+                    if isinstance(command, dict) and video.marker.handle(command):
+                        return
+                    input_handler.handle(data)
             except (ValueError, TypeError, KeyError):
                 pass
         @channel.on('close')
@@ -298,18 +309,40 @@ async def offer(request):
 async def stop_session(request):
     for peer in list(PEERS):
         await peer.close()
+    for socket in list(internet.SESSIONS):
+        await socket.close()
     return web.json_response({'disconnected':True})
 
 
+async def internet_session(request):
+    return await internet.serve(request, PEERS, RemoteInput, STREAM_WIDTH, STREAM_HEIGHT, PASSWORD)
+
+
 async def metrics(request):
+    outbound = {}
+    for peer in list(PEERS):
+        report = await peer.getStats()
+        for stat in report.values():
+            if stat.type == 'outbound-rtp' and stat.kind == 'video':
+                outbound.update(bytesSent=stat.bytesSent, packetsSent=stat.packetsSent)
+            if stat.type == 'remote-inbound-rtp' and stat.kind == 'video':
+                rtt = getattr(stat, 'roundTripTime', None)
+                outbound.update(rttMs=rtt * 1000 if rtt is not None else None,
+                    packetsLost=getattr(stat, 'packetsLost', None))
     return web.json_response({'encoding':nvenc.METRICS, 'captureMs':VIDEO.capture_ms if VIDEO else None,
-        'connected':any(peer.connectionState == 'connected' for peer in PEERS),
-        'scope':'Stream transport only; actual game FPS and Mac input-to-picture delay require separate measurements'})
+        'sampleTimeMs':time.monotonic()*1000, 'capturedFrames':VIDEO.captured_frames if VIDEO else None, 'width':STREAM_WIDTH, 'height':STREAM_HEIGHT,
+        'targetFps':60, 'targetBitrate':int(os.environ.get('ZH_STREAM_BITRATE', '8000000')),
+        'diagnosticProbe':'video-marker-v1', 'outbound':outbound,
+        'connected':bool(internet.SESSIONS) or any(peer.connectionState == 'connected' for peer in PEERS),
+        'internet':internet.METRICS if internet.SESSIONS else None,
+        'scope':'Stream transport only; excludes actual game FPS and simulation response'}, headers={'Cache-Control':'no-store'})
 
 
 async def shutdown(app):
     for peer in list(PEERS):
         await peer.close()
+    for socket in list(internet.SESSIONS):
+        await socket.close()
 
 
 if __name__ == '__main__':
@@ -321,10 +354,13 @@ if __name__ == '__main__':
     app = web.Application(middlewares=[authenticate], client_max_size=100_000)
     app.router.add_get('/', lambda request: web.FileResponse(ROOT / 'client.html'))
     app.router.add_get('/client.mjs', lambda request: web.FileResponse(ROOT / 'client.mjs'))
+    app.router.add_get('/report.mjs', lambda request: web.FileResponse(ROOT / 'report.mjs'))
+    app.router.add_get('/internet-client.mjs', lambda request: web.FileResponse(ROOT / 'internet-client.mjs'))
     app.router.add_get('/font.woff2', lambda request: web.FileResponse('/app/public/fonts/rajdhani.woff2'))
     app.router.add_get('/metrics', metrics)
     app.router.add_post('/offer', offer)
     app.router.add_post('/disconnect', stop_session)
+    app.router.add_get('/stream-ws', internet_session)
     app.on_shutdown.append(shutdown)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain('/config/tls/cert.pem', '/config/tls/key.pem')

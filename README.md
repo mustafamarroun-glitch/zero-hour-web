@@ -26,6 +26,13 @@ Use **Remove installed game** to remove this browser's installation while keepin
 
 ## Verification and release
 
+Version **2.2.0** adds **Stream game** to the website and a Windows internet
+streaming launcher. Open `/stream/` with the host’s invite; video, audio and
+controls pass through authenticated HTTPS while the isolated game runs on the
+host GPU. Double-click **Start Zero Hour Internet Streaming.cmd** with Docker
+running. The private invite/login file remains under `.local/streaming/`.
+See [docs/STREAMING.md](docs/STREAMING.md) for startup, shutdown and test limits.
+
 For one independent friend session streamed from this laptop to a Mac on the
 same Wi-Fi, see [docs/STREAMING.md](docs/STREAMING.md). The project now has a
 Windows Docker/WSL path using the NVIDIA D3D12 renderer and NVENC, plus an

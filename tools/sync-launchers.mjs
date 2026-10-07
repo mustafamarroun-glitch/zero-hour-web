@@ -5,7 +5,7 @@ export async function syncLaunchers({check=false}={}){
  let html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
  html=html.replace('<html lang="en"','<html data-game="yuri" lang="en"')
   .replace('Play Generals Zero Hour in your browser using your own local game files.','Play Yuri’s Revenge in your browser using your own local game files.')
-  .replace('<title>Zero Hour Web 2.1</title>','<title>Yuri’s Revenge · Zero Hour Web 2.1</title>')
+  .replace('<title>Zero Hour Web 2.2</title>','<title>Yuri’s Revenge · Zero Hour Web 2.2</title>')
   .replaceAll('src="./','src="../').replaceAll('href="./','href="../')
   .replace('<a href="../" aria-current="page">Zero Hour</a><a href="../yuri/">Yuri’s Revenge</a>','<a href="../">Zero Hour</a><a href="./" aria-current="page">Yuri’s Revenge</a>')
   .replace('Command &amp; Conquer: Generals Zero Hour, directly in your browser.','Command &amp; Conquer: Yuri’s Revenge, directly in your browser.')

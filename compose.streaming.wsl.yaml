@@ -9,6 +9,7 @@ services:
       ZH_STREAM_WIDTH: "1280"
       ZH_STREAM_HEIGHT: "720"
       ZH_STREAM_BITRATE: "8000000"
+      ZH_INTERNET_BITRATE: "2000000"
       NVIDIA_DRIVER_CAPABILITIES: all
       LD_LIBRARY_PATH: /usr/lib/wsl/lib
       GALLIUM_DRIVER: d3d12
@@ -19,9 +20,10 @@ services:
       - /dev/dxg:/dev/dxg
     ports:
       - "${ZH_STREAM_LAN_IP}:3001:3001"
-      - "${ZH_STREAM_LAN_IP}:50000:50000/udp"
+      - "127.0.0.1:3002:3001"
+      - "${ZH_STREAM_LAN_IP}:21064:21064/udp"
       - "${ZH_STREAM_LAN_IP}:3478:3478/udp"
-      - "${ZH_STREAM_LAN_IP}:49160-49223:49160-49223/udp"
+      - "${ZH_STREAM_LAN_IP}:21000-21063:21000-21063/udp"
       - "127.0.0.1:8098:8098"
     volumes:
       - /usr/lib/wsl/lib:/usr/lib/wsl/lib:ro

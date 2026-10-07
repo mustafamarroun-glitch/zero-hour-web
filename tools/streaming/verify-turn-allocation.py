@@ -72,7 +72,7 @@ async def main():
         relay_ports = relayed_ports(first.localDescription) + relayed_ports(second.localDescription)
         if not relay_ports:
             raise RuntimeError("Coturn did not return a relayed ICE candidate.")
-        if any(not 49160 <= port <= 49223 for port in relay_ports):
+        if any(not 21000 <= port <= 21063 for port in relay_ports):
             raise RuntimeError("Coturn allocated a port outside the published UDP relay range.")
         await asyncio.wait_for(opened.wait(), timeout=20)
         await asyncio.wait_for(echoed.wait(), timeout=10)
