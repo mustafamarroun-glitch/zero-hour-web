@@ -18,7 +18,7 @@ METRICS = {'transport': 'https-websocket', 'encoder': 'h264_nvenc', 'bytesSent':
 
 
 def encoder_command(width, height, bitrate, fps=30):
-    return ['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error',
+    return ['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-progress', 'pipe:2', '-stats_period', '1',
             '-thread_queue_size', '8', '-f', 'x11grab', '-draw_mouse', '1',
             '-framerate', str(fps), '-video_size', f'{width}x{height}', '-i', ':99.0',
             '-thread_queue_size', '8', '-probesize', '32', '-analyzeduration', '0',
@@ -32,6 +32,19 @@ def encoder_command(width, height, bitrate, fps=30):
             '-c:a', 'aac', '-b:a', '64k', '-ar', '48000', '-ac', '2',
             '-movflags', 'empty_moov+default_base_moof', '-frag_duration', '100000',
             '-flush_packets', '1', '-f', 'mp4', 'pipe:1']
+
+
+def quality_command(width, height, quality):
+    profiles = {'low': (350_000, 30), 'balanced': (1_000_000, 30),
+                'fast': (int(os.environ.get('ZH_INTERNET_BITRATE', '2000000')), 60)}
+    if quality not in profiles:
+        raise ValueError('Unsupported Internet quality')
+    bitrate, fps = profiles[quality]
+    output_width, output_height = (854, 480) if quality == 'low' else (width, height)
+    command = encoder_command(width, height, bitrate, fps)
+    if quality == 'low':
+        command[command.index('-vf') + 1] += ',scale=854:480'
+    return command, output_width, output_height, bitrate, fps
 
 
 async def read_box(reader):
@@ -59,12 +72,11 @@ async def serve(request, peers, input_factory, width, height, password):
         raise web.HTTPServiceUnavailable(text='Start Internet streaming to create a private password.')
     if peers or SESSIONS:
         raise web.HTTPConflict(text='A player is already connected. Disconnect that session first.')
-    profiles = {'low': (350_000, 30), 'balanced': (1_000_000, 30),
-                'fast': (int(os.environ.get('ZH_INTERNET_BITRATE', '2000000')), 60)}
     quality = request.query.get('quality', 'low')
-    if quality not in profiles:
+    try:
+        command, output_width, output_height, bitrate, fps = quality_command(width, height, quality)
+    except ValueError:
         raise web.HTTPBadRequest(text='Choose a supported Internet quality preset.')
-    bitrate, fps = profiles[quality]
     socket = web.WebSocketResponse(heartbeat=15, max_msg_size=512, compress=False)
     if not socket.can_prepare(request).ok:
         raise web.HTTPBadRequest(text='A WebSocket connection is required.')
@@ -73,12 +85,13 @@ async def serve(request, peers, input_factory, width, height, password):
     process = None
     controls = None
     tasks = []
-    METRICS.update(bytesSent=0, startedAt=time.monotonic(), error=None)
+    METRICS.update(bytesSent=0, encodedFrames=0, startedAt=time.monotonic(), error=None,
+                   width=output_width, height=output_height, targetFps=fps, targetBitrate=bitrate, quality=quality)
     try:
         await socket.prepare(request)
         controls = input_factory()
         process = await asyncio.create_subprocess_exec(
-            *encoder_command(width, height, bitrate, fps),
+            *command,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, limit=4*1024*1024)
 
         async def transmit():
@@ -93,7 +106,7 @@ async def serve(request, peers, input_factory, width, height, password):
                     if kind != b'moov':
                         continue
                     await socket.send_json({'type': 'ready', 'mime': mime_type(initialization),
-                                            'width': width, 'height': height, 'targetFps': fps})
+                                            'width': output_width, 'height': output_height, 'targetFps': fps})
                     box = initialization
                     ready = True
                 # Backpressure must stop a slow connection, never queue stale video.
@@ -110,7 +123,10 @@ async def serve(request, peers, input_factory, width, height, password):
                         if command.get('type') == 'ping':
                             await socket.send_json({'type': 'pong', 'id': command.get('id')})
                         else:
-                            controls.handle(message.data)
+                            if command.get('type') == 'move':
+                                command['x'] = float(command['x']) * width / output_width
+                                command['y'] = float(command['y']) * height / output_height
+                            controls.handle(json.dumps(command))
                     except (ValueError, TypeError, KeyError, OverflowError):
                         pass
                 elif message.type in (WSMsgType.CLOSE, WSMsgType.ERROR):
@@ -119,8 +135,14 @@ async def serve(request, peers, input_factory, width, height, password):
         async def read_errors():
             # Drain stderr continuously so encoder errors cannot block the pipe.
             recent = b''
-            while chunk := await process.stderr.read(4096):
-                recent = (recent + chunk)[-4096:]
+            while chunk := await process.stderr.readline():
+                if chunk.startswith(b'frame='):
+                    try:
+                        METRICS['encodedFrames'] = int(chunk.split(b'=', 1)[1])
+                    except ValueError:
+                        pass
+                elif b'=' not in chunk:
+                    recent = (recent + chunk)[-4096:]
             return recent.decode(errors='replace')
 
         stderr_task = asyncio.create_task(read_errors())
@@ -139,7 +161,7 @@ async def serve(request, peers, input_factory, width, height, password):
                 pass
     finally:
         if controls:
-            controls.release()
+            controls.close()
         diagnostic = tasks[-1].result() if tasks and tasks[-1].done() and not tasks[-1].cancelled() else None
         for task in tasks:
             task.cancel()

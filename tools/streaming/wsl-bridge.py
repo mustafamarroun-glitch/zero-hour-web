@@ -114,6 +114,8 @@ class DesktopVideo(VideoStreamTrack):
         return frame
 
     def stop(self):
+        if self.readyState == 'ended':
+            return
         super().stop()
         def close():
             if self.framebuffer:
@@ -156,6 +158,8 @@ class DesktopAudio(MediaStreamTrack):
         return frame
 
     def stop(self):
+        if self.readyState == 'ended':
+            return
         super().stop()
         if self.process.poll() is None:
             self.process.terminate()
@@ -171,8 +175,11 @@ class RemoteInput:
         self.x = display.Display(':99')
         self.keys = set()
         self.buttons = set()
+        self.closed = False
 
     def release(self):
+        if self.closed:
+            return
         for code in self.keys:
             xtest.fake_input(self.x, X.KeyRelease, code)
         for button in self.buttons:
@@ -181,10 +188,18 @@ class RemoteInput:
         self.buttons.clear()
         self.x.sync()
 
+    def close(self):
+        if not self.closed:
+            self.release()
+            self.x.close()
+            self.closed = True
+
     def handle(self, message):
-        if not isinstance(message, str) or len(message) > 512:
+        if self.closed or not isinstance(message, str) or len(message) > 512:
             return
         data = json.loads(message)
+        if not isinstance(data, dict):
+            return
         kind = data.get('type')
         if kind == 'release':
             self.release()
@@ -248,9 +263,14 @@ async def offer(request):
     video = DesktopVideo()
     INPUT, VIDEO = input_handler, video
     audio = None
+    cleaned = False
 
     async def cleanup():
-        input_handler.release()
+        nonlocal cleaned
+        if cleaned:
+            return
+        cleaned = True
+        input_handler.close()
         video.stop()
         if audio:
             audio.stop()
@@ -262,7 +282,7 @@ async def offer(request):
         if pc.connectionState == 'failed':
             await pc.close()
         if pc.connectionState == 'closed':
-            input_handler.release()
+            input_handler.close()
             if video.readyState != 'ended':
                 video.stop()
             if audio:
@@ -290,6 +310,7 @@ async def offer(request):
         @channel.on('close')
         def channel_closed():
             input_handler.release()
+            asyncio.create_task(cleanup())
 
     try:
         await pc.setRemoteDescription(RTCSessionDescription(sdp=body['sdp'], type='offer'))
@@ -356,6 +377,7 @@ if __name__ == '__main__':
     app.router.add_get('/client.mjs', lambda request: web.FileResponse(ROOT / 'client.mjs'))
     app.router.add_get('/report.mjs', lambda request: web.FileResponse(ROOT / 'report.mjs'))
     app.router.add_get('/internet-client.mjs', lambda request: web.FileResponse(ROOT / 'internet-client.mjs'))
+    app.router.add_get('/stream-policy.mjs', lambda request: web.FileResponse(ROOT / 'stream-policy.mjs'))
     app.router.add_get('/font.woff2', lambda request: web.FileResponse('/app/public/fonts/rajdhani.woff2'))
     app.router.add_get('/metrics', metrics)
     app.router.add_post('/offer', offer)

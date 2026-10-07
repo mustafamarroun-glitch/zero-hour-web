@@ -70,7 +70,7 @@ window.stopFixture=()=>{peer?.close();peer=null};
         return res.end(JSON.stringify(await host.evaluate(()=>window.fixtureMetrics())));
       }
       const files={'/':'client.html','/client.mjs':'client.mjs','/report.mjs':'report.mjs','/internet-client.mjs':'internet-client.mjs',
-        '/font.woff2':'../../public/fonts/rajdhani.woff2'};
+        '/stream-policy.mjs':'stream-policy.mjs','/font.woff2':'../../public/fonts/rajdhani.woff2'};
       if(!files[req.url]){res.statusCode=404;return res.end()}
       res.setHeader('Content-Type',req.url.endsWith('.mjs')?'text/javascript':req.url.endsWith('.woff2')?'font/woff2':'text/html');
       res.end(await fs.readFile(path.resolve(root,files[req.url])));

@@ -26,6 +26,17 @@ Use **Remove installed game** to remove this browser's installation while keepin
 
 ## Verification and release
 
+Version **2.3.0** improves stream playback, quality, controls and joining. Internet
+Auto starts at 480p30, cautiously trials higher quality, and lowers quality when
+playback struggles. Bounded catch-up avoids repeated decoder seeks; quality
+changes and interrupted Internet playback reconnect video while retaining the
+hosted game session. Stream tools add remembered volume/mute, fullscreen access
+and F8/Alt+Enter shortcuts. Internet diagnostic downloads report actual playback
+and encoder counters without inventing input latency or exporting private data.
+The verified 2.2 backup and exact release boundaries are in
+[VERSION_2_3.md](VERSION_2_3.md). Real separate-device, Mac and complete-match
+acceptance remain open; local test results are in docs/VERIFICATION.md.
+
 Version **2.2.0** adds **Stream game** to the website and a Windows internet
 streaming launcher. Open `/stream/` with the host’s invite; video, audio and
 controls pass through authenticated HTTPS while the isolated game runs on the

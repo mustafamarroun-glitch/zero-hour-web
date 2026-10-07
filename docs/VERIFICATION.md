@@ -2,6 +2,68 @@
 
 Updated 2026-10-07. The source project's earlier results are context only; the following checks concern Zero Hour Web.
 
+## Version 2.3 stream experience
+
+The Version 2.2 source/site backup under
+`output/backups/Zero-Hour-Web-v2.2.0-20261007T011839Z/` passed ZIP CRC,
+restored SHA-256 comparison for every entry, and complete Git-bundle verification.
+Its commit is `18b2f233fbb2b6ca3220538752ed4b3189e8d58a`.
+Private browser profiles/imports/saves were retained separately, not published.
+
+Windows Chrome 154.0.8037.99 passed the synthetic H.264/AAC receiver regression:
+Internet invite selection, real 480p playback, remembered audio/quality,
+selection dragging and modifier/control-group input traces, focus release,
+F8/fullscreen tools, ignored letterbox clicks, live quality switching,
+bounded reconnect and cancellation, occupied-session handling, report download,
+missing host metrics, recording cancellation and privacy filtering. Desktop and
+390px layouts were inspected and their welcome/tool overlap corrected.
+The synthetic WebRTC report regression also passed all three marker probes,
+visibility interruption, reconnect/cancellation and unavailable-stat paths.
+These fixture checks do not prove actual game behavior or GPU/Mac performance.
+
+The actual Windows/WSL stack passed NVIDIA rendering, Chromium WebGL and the
+private TURN data-channel exchange. Two-second NVENC/AAC encode/decode checks
+passed 480p30 (60 video frames), 720p30 (60) and 720p60 (120), with both tracks
+starting at zero. This is isolated desktop component evidence, not a match.
+
+The actual same-PC HTTPS receiver passed authentication/origin guards,
+single-receiver limits, scaled input mapping to the 1280x720 X11 desktop,
+480p30 decode and reconnect into 720p30. A ten-second real-host report measured
+about 29.9 receiver playback/displayed FPS, 30.5 FFmpeg encoder FPS and a mean
+672 ms playback buffer. The preceding four-second observation processed 120
+video frames without additional drops. HTTPS input-to-picture latency remains
+unavailable; the buffer value is not a latency measurement.
+
+The same-PC WebRTC receiver report measured about 60 decoded/displayed FPS and
+60 capture/encode FPS. Three copied-video marker probes measured 46–57 ms of
+stream-path response. These exclude game simulation, physical input and monitor
+scanout, and cannot establish latency on the Mac or over the Internet. Host
+session cleanup passed after disconnect. Private evidence remains under
+`.local/streaming/internet-verification/`, `experience-verification/` and
+`report-verification/`; screenshots remain in `.impeccable/review/`.
+
+An early aggressive catch-up policy repeatedly sought and reduced receiver
+throughput to roughly 7 FPS while its encoded track retained 30 FPS. Small
+playback-rate corrections subsequently dropped many frames. A fixed-clock
+comparison restored 30 FPS; the final uninstrumented receiver retained it.
+The final policy keeps 1x playback, an 800 ms seek threshold, 350 ms target
+and two-second seek cooldown. A 650 ms trial still dropped frames and was
+rejected. No decoder-rate promise is inferred from encoder counters.
+
+**Remaining acceptance:** a separate computer/network, Mac playback, audible
+audio and audio/video sync, a busy battle and complete two-human match,
+sustained Internet 720p60, and real game-command response timing. Public TURN,
+stable hostnames, more streamed guests and native mid-match recovery remain
+outside this release. This iteration did not start a public streaming tunnel.
+The project test services were stopped afterward while retaining imports,
+profiles, saves and private credentials.
+
+Developer checks: `node tools/streaming/test-policy.mjs`, `test-report.mjs`,
+`test-address.mjs`, `verify-experience.cjs`, `verify-report.cjs` and
+`verify-internet.cjs`; Python marker/gate tests and duplicate input/video/audio
+cleanup tests using the actual class methods with test doubles; script parsing; pinned
+runtime/source and publication-boundary checks; corresponding-source packaging.
+
 ## Version 2.2 Internet streaming
 
 The actual Windows/WSL startup passed NVIDIA rendering, Chromium WebGL,

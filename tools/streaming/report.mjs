@@ -41,19 +41,20 @@ function distribution(values) {
     p50: sorted.length ? sorted[Math.ceil(sorted.length * .5)-1] : null,
     p95: sorted.length ? sorted[Math.ceil(sorted.length * .95)-1] : null };
 }
-export function buildReport({sessionId, startedAt, samples, probes, browser, interrupted = false}) {
+export function buildReport({sessionId, startedAt, samples, probes, browser, interrupted = false, transport = 'webrtc'}) {
   return {
-    schemaVersion: 1, kind: 'zero-hour-private-stream-report', sessionId, startedAt,
+    schemaVersion: 1, kind: 'zero-hour-private-stream-report', transport, sessionId, startedAt,
     finishedAt: new Date().toISOString(), browser,
     scope: 'Receiver video playback and host stream transport during an operator-selected session window.',
+    frameCounterMethod: transport==='webrtc'?'decodedFps uses WebRTC framesDecoded; displayedFps uses video-frame callback presentation counters.':'decodedFps is a playback estimate from totalVideoFrames minus droppedVideoFrames, not native decoder telemetry. displayedFps uses video-frame callback presentation counters.',
     privacy: 'Local receiver download only. No report upload, screenshots, game data, addresses or credentials.',
     verification: { matchConfirmedByReport: false, macGameplayProven: false,
       note: 'Operator must confirm both humans are in a visible, responsive match. Stream counters cannot prove gameplay.' },
     interrupted, durationSeconds: samples.length > 1 ? (samples.at(-1).atMs - samples[0].atMs)/1000 : 0,
-    summary: Object.fromEntries(['decodedFps','displayedFps','rttMs','hostCaptureFps','hostEncodeFps'].map(key =>
+    summary: Object.fromEntries(['decodedFps','displayedFps','rttMs','hostCaptureFps','hostEncodeFps','bufferMs','receivedMbps','dropsInInterval'].map(key =>
       [key, distribution(samples.map(sample => sample[key]))])),
     inputToVisibleResponse: {
-      method: 'input DataChannel → host copied-video marker → receiver video-frame callback',
+      method: transport==='webrtc'?'input DataChannel → host copied-video marker → receiver video-frame callback':'Unavailable: HTTPS transport does not support a copied-video marker',
       scope: 'Diagnostic stream-path estimate; excludes game simulation response, physical input hardware and physical display scanout.',
       timing: 'Receiver performance clock only; detection callback time (best-effort browser estimate). No host clock subtraction or RTT substitution.',
       status: probes.some(probe => probe.status === 'measured') ? 'measured' : 'unavailable',

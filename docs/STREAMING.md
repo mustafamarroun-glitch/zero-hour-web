@@ -1,5 +1,58 @@
 # Stream Zero Hour on Wi-Fi or over the internet
 
+## Version 2.3 receiver improvements
+
+The verified Version 2.2 source/site restore point is under
+`output/backups/Zero-Hour-Web-v2.2.0-20261007T011839Z/`. Its ZIP entries passed
+CRC and restored SHA-256 verification, and its complete Git bundle verified.
+Read its RESTORE.txt; extract into a new folder and retain the original private
+stream profile, imports, passwords and saves separately.
+
+Internet now defaults to **Auto**. It starts with **Data saver · 480p30**
+(854x480, 350 kbps video plus up to 64 kbps AAC audio). Healthy visible playback
+for 30 consecutive samples permits a cautious trial of **Balanced · 720p30**
+(1 Mbps), then **Smooth · 720p60** (2 Mbps by default). Three poor samples
+lower quality; upgrade trials have a 90-second cooldown. This estimates playback
+health, not spare upload capacity. Manual presets stay fixed. Quality changes
+briefly reconnect video without relaunching the hosted game. Input coordinates
+continue to map to the full 1280x720 desktop in the smaller data-saver stream.
+
+Internet playback keeps a fixed 1x clock. Catch-up seeks start above 800 ms,
+target 350 ms of remaining video, and are separated by two seconds. Repeated
+seeks and small playback-rate changes had reduced receiver throughput in real
+Chrome even though the encoded track retained 30 FPS. These values
+are playback buffer targets, not input-to-picture latency measurements.
+
+Interrupted Internet playback retries at most three times (1.5, 3 and 6 seconds).
+Disconnect cancels pending retries and report recordings. An occupied session,
+rejected login or unsupported codec stops automatic retries and explains the
+next action. A successful 15-second connection resets the retry budget.
+Wi-Fi failures keep their explicit reconnect guidance. Video reconnect does not
+prove that a disconnected native multiplayer match can resume.
+
+**Stream tools / F8** shows quality, volume/mute, fullscreen and the report
+button, including inside fullscreen. **Alt+Enter** toggles fullscreen. Escape
+leaves fullscreen; a subsequent Escape reaches the game. Receiver volume,
+mute and quality are remembered locally. Addresses/passwords are not saved.
+Clicks in black letterbox areas cannot issue orders; dragged coordinates clamp
+to the picture, pointer movement is coalesced, and focus/tab changes release
+held controls. Host input connections close when each receiver session ends.
+
+**Save diagnostic report** works in both modes. Internet reports include
+receiver video counter estimates, displayed FPS when frame callbacks exist,
+buffer, bitrate, drops, WebSocket RTT and actual FFmpeg encoder progress where
+available. Missing counters stay null; LAN encode/capture counters are excluded
+from Internet reports. HTTPS has no copied-video marker support, so input delay
+is explicitly unavailable rather than derived from RTT. Reports are local JSON
+downloads with no screenshots, recordings, game files, credentials or addresses.
+Wi-Fi keeps the existing copied-video-marker diagnostic below.
+
+Restart through the normal launcher to load host code. Do not restart only the
+friend container: Docker sidecars share its network namespace and need the
+launcher's coordinated recreation. No public tunnel is started by the local
+verification commands. See VERSION_2_3.md and VERIFICATION.md for release scope
+and the remaining separate-device/full-match acceptance.
+
 ## Internet streaming (Version 2.2)
 
 The website’s **Stream game** link opens `/stream/`. The guest pastes the
@@ -43,11 +96,11 @@ instead of indefinitely queuing old frames. One receiver is allowed across both
 transports. HTTP and WebSocket access require the private login, and state
 changes/upgrade requests enforce the receiver’s same origin.
 
-Internet quality starts at **Low bandwidth · 720p30**: 350 kbps H.264 and up
-to 64 kbps AAC. **Balanced** targets 720p30 at 1 Mbps; **Fast connection**
-targets 720p60 at 2 Mbps. Choose quality before connecting. Low bandwidth
-compresses fine details more heavily; raise quality only when the host’s upload
-and receiver’s download can sustain it. The fast preset bitrate is configurable
+Internet quality now starts with **Auto · Data saver · 480p30**: 350 kbps H.264
+and up to 64 kbps AAC. **Balanced** targets 720p30 at 1 Mbps; **Smooth**
+targets 720p60 at 2 Mbps. Quality can change while connected. Data saver reduces
+fine detail; raise quality only when the host’s upload and receiver’s download
+can sustain it. The smooth preset bitrate is configurable
 with `ZH_INTERNET_BITRATE` in `compose.streaming.wsl.yaml`. LAN WebRTC keeps its
 720p60 / 8 Mbps configuration. All rates are targets rather than game-performance
 guarantees. Independent video/audio clocks start at zero; the encoder preflight

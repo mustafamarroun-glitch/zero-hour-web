@@ -12,11 +12,10 @@ import subprocess
 transport = import_module('internet-transport')
 
 
-async def check():
+async def check(quality='low'):
     os.environ.setdefault('PULSE_SERVER', 'unix:/tmp/zh-runtime/pulse/native')
-    command = transport.encoder_command(int(os.environ.get('ZH_STREAM_WIDTH', '1280')),
-                                        int(os.environ.get('ZH_STREAM_HEIGHT', '720')),
-                                        350_000, 30)
+    command, width, height, bitrate, fps = transport.quality_command(int(os.environ.get('ZH_STREAM_WIDTH', '1280')),
+                                        int(os.environ.get('ZH_STREAM_HEIGHT', '720')), quality)
     command[-3:-3] = ['-t', '2']
     process = await asyncio.create_subprocess_exec(*command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     try:
@@ -33,13 +32,15 @@ async def check():
     print(json.dumps({'streams':[{key:stream.get(key) for key in ('codec_name','start_time','duration','nb_read_frames')} for stream in streams]}), flush=True)
     assert {stream['codec_name'] for stream in streams} == {'h264', 'aac'}, streams
     video = next(stream for stream in streams if stream['codec_name'] == 'h264')
-    assert int(video.get('nb_read_frames', '0')) >= 30, 'Video timestamps did not advance across the preflight window'
+    assert int(video.get('nb_read_frames', '0')) >= fps, 'Video timestamps did not advance across the preflight window'
+    assert (video['width'], video['height']) == (width, height), 'Wrong transmitted resolution'
     decoded = subprocess.run(['ffmpeg','-v','error','-i','pipe:0','-f','null','-'], input=data, capture_output=True, timeout=15)
     if decoded.returncode:
         raise RuntimeError(decoded.stderr.decode(errors='replace'))
-    print(json.dumps({'passed': True, 'encoder': 'h264_nvenc', 'mime': mime, 'bytes': len(data),
+    print(json.dumps({'passed': True, 'quality': quality, 'width': width, 'height': height, 'targetFps': fps, 'encoder': 'h264_nvenc', 'mime': mime, 'bytes': len(data),
                       'scope': 'Two-second local desktop MP4 encode/decode only; remote playback unverified'}))
 
 
 if __name__ == '__main__':
-    asyncio.run(check())
+    import sys
+    asyncio.run(check(sys.argv[1] if len(sys.argv) > 1 else 'low'))

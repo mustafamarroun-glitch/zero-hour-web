@@ -13,6 +13,8 @@ form.addEventListener('submit',event=>{
   event.preventDefault();
   try{
     const url=streamAddress(input.value);
+    const local=/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url.hostname);
+    url.searchParams.set('transport',local?'lan':'internet');
     location.assign(url.href);
   }catch(problem){error.textContent=problem.message;error.hidden=false;input.focus()}
 });
