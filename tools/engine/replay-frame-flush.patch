@@ -1,0 +1,60 @@
+--- a/GeneralsMD/Code/GameEngine/Source/Common/Recorder.cpp
++++ b/GeneralsMD/Code/GameEngine/Source/Common/Recorder.cpp
+@@ -44,6 +44,20 @@
+ #include "Common/RandomValue.h"
+ #include "Common/CRCDebug.h"
+ #include "Common/Version.h"
++
++#ifdef __EMSCRIPTEN__
++extern "C" int cnc_port_is_engine_frame_profile_enabled(void) __attribute__((weak));
++extern "C" void cnc_port_note_game_logic_step(const char *name) __attribute__((weak));
++static inline void noteReplayProfile(const char *name)
++{
++    if (cnc_port_is_engine_frame_profile_enabled &&
++        cnc_port_is_engine_frame_profile_enabled() && cnc_port_note_game_logic_step) {
++        cnc_port_note_game_logic_step(name);
++    }
++}
++#else
++static inline void noteReplayProfile(const char *) {}
++#endif
+ 
+ #ifdef _INTERNAL
+ // for occasional debugging...
+@@ -572,8 +586,10 @@
+ 		msg = msg->next();
+ 	}
+ 
+-	if (needFlush) {
++	if (needFlush && m_file != NULL) {
++        noteReplayProfile("ReplayRecorder.frameFlush.before");
+ 		fflush(m_file);
++        noteReplayProfile("ReplayRecorder.frameFlush.after");
+ 	}
+ }
+ 
+@@ -770,6 +786,7 @@
+  * Write this game message to the record file. This also writes the game message's execution frame.
+  */
+ void RecorderClass::writeToFile(GameMessage * msg) {
++    noteReplayProfile("ReplayRecorder.serialize.before");
+ 	// Write the frame number for this command.
+ 	UnsignedInt frame = TheGameLogic->getFrame();
+ 	fwrite(&frame, sizeof(frame), 1, m_file);
+@@ -828,7 +845,15 @@
+ 	parser->deleteInstance();
+ 	parser = NULL;
+ 
+-	fflush(m_file); ///< @todo should this be in the final release?
++    noteReplayProfile("ReplayRecorder.serialize.after");
++#if !defined(__EMSCRIPTEN__) || defined(CNC_WEB_REPLAY_FLUSH_BASELINE)
++    // Retain native behavior and an explicit comparison build.
++    noteReplayProfile("ReplayRecorder.commandFlush.before");
++	fflush(m_file);
++    noteReplayProfile("ReplayRecorder.commandFlush.after");
++#endif
++    // Browser recording flushes the complete frame in updateRecord.
++    // The clear-game path closes the file in stopRecording.
+ }
+ 
+ void RecorderClass::writeArgument(GameMessageArgumentDataType type, const GameMessageArgumentType arg) {

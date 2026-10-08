@@ -5,7 +5,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $sessionDirectory = Join-Path $projectRoot '.local\preview-server'
 $sessionPath = Join-Path $sessionDirectory 'session.json'
 $localUrl = 'http://127.0.0.1:8096'
-$runtime = '3ccaa0e9-compiled-combined-v6'
+$runtime = '3ccaa0e9-compiled-combined-v6-rf1'
 $tunnelLog = Join-Path $sessionDirectory 'tunnel.log'
 $tunnelErrorLog = Join-Path $sessionDirectory 'tunnel-error.log'
 

@@ -1,0 +1,30 @@
+{
+  "runtime": "3ccaa0e9-compiled-combined-v6-rf1",
+  "upstreamCommit": "3ccaa0e9af66889be183ca910851e881d47d437c",
+  "sourceArchiveSha256": "fe6179f0013b035bb1211f0946976c4bf95b242a62e43c2956c34b126818a8c9",
+  "patch": {
+    "path": "tools/engine/replay-frame-flush.patch",
+    "sha256": "ec7738c921233f2139b7474f44ebf1d6d2c87df6b2c45cf9aaa38d9d26267de5"
+  },
+  "buildScriptSha256": "94567515446dffa747663ee66f3d5da99183ee55c96d38b959115f14b4a9b4e1",
+  "image": "emscripten/emsdk:3.1.6@sha256:978d9e7febf9a186e8ce6954e3e9b8e717e7c670832b38c51b22b7f600dd1111",
+  "emcc": "3.1.6 (c102a423a06d9833a8481d6859888bebf22842b0)",
+  "configuration": "Release; threads=1; exceptions=1; -O2 -ffile-prefix-map=/work/source/NewShoes-main=.",
+  "artifacts": [
+    {
+      "path": "public/dist-threaded-release/cnc-port.js",
+      "bytes": 268991,
+      "sha256": "32e2cce2158548583ccea6d92030ec3f52436a12531d10b1664da2d38cbd28f5"
+    },
+    {
+      "path": "public/dist-threaded-release/cnc-port.wasm",
+      "bytes": 8108184,
+      "sha256": "7cc8b8df0ff113e97754e6d1ace5d12c0174645a67ba773fab48a6166c650ddb"
+    },
+    {
+      "path": "public/dist-threaded-release/cnc-port.worker.js",
+      "bytes": 2219,
+      "sha256": "a8982fbc8dcdd4c377f0bd4fee836ef6b6adba8159573383b4dd90cd10ba5bbe"
+    }
+  ]
+}

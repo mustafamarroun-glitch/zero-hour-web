@@ -51,7 +51,7 @@ try{
   active=await startServer({TURN_URL:'turn:192.168.1.67:3478?transport=udp',TURN_SECRET_FILE:secretPath});
   assert.equal(active.response.status,200);
   const configured=await active.response.json();
-  assert.equal(configured.runtime,'3ccaa0e9-compiled-combined-v6');
+  assert.equal(configured.runtime,'3ccaa0e9-compiled-combined-v6-rf1');
   assert.equal(configured.iceServers.length,1);
   const server=configured.iceServers[0];
   assert.deepEqual(server.urls,['turn:192.168.1.67:3478?transport=udp','turn:127.0.0.1:3478?transport=udp']);

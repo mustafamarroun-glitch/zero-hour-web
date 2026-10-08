@@ -11,7 +11,7 @@ function Test-ServerReady {
     try {
         $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8093/network-config.json' -TimeoutSec 2
         $config = $response.Content | ConvertFrom-Json
-        return ($response.StatusCode -eq 200 -and $config.rooms -eq '/rooms' -and $config.signaling -eq '/nostr' -and $config.runtime -eq '3ccaa0e9-compiled-combined-v6')
+        return ($response.StatusCode -eq 200 -and $config.rooms -eq '/rooms' -and $config.signaling -eq '/nostr' -and $config.runtime -eq '3ccaa0e9-compiled-combined-v6-rf1')
     } catch { return $false }
 }
 

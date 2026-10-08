@@ -260,17 +260,23 @@
     {
       "path": "dist-threaded-release/cnc-port.js",
       "bytes": 268991,
-      "sha256": "6c675d3b14267a6efcf3052748b115b2b9d3e96ffd3b46e0110d5ca27ebd7f15"
+      "sha256": "6c675d3b14267a6efcf3052748b115b2b9d3e96ffd3b46e0110d5ca27ebd7f15",
+      "publishedSha256": "32e2cce2158548583ccea6d92030ec3f52436a12531d10b1664da2d38cbd28f5",
+      "publishedBytes": 268991
     },
     {
       "path": "dist-threaded-release/cnc-port.wasm",
       "bytes": 8109038,
-      "sha256": "0b9ad4439b8e10c7f34bdcd6fc235f2d8f915362da6e0371f4a497ee8b4ef34d"
+      "sha256": "0b9ad4439b8e10c7f34bdcd6fc235f2d8f915362da6e0371f4a497ee8b4ef34d",
+      "publishedSha256": "7cc8b8df0ff113e97754e6d1ace5d12c0174645a67ba773fab48a6166c650ddb",
+      "publishedBytes": 8108184
     },
     {
       "path": "dist-threaded-release/cnc-port.worker.js",
       "bytes": 2219,
-      "sha256": "a8982fbc8dcdd4c377f0bd4fee836ef6b6adba8159573383b4dd90cd10ba5bbe"
+      "sha256": "a8982fbc8dcdd4c377f0bd4fee836ef6b6adba8159573383b4dd90cd10ba5bbe",
+      "publishedSha256": "a8982fbc8dcdd4c377f0bd4fee836ef6b6adba8159573383b4dd90cd10ba5bbe",
+      "publishedBytes": 2219
     },
     {
       "path": "LICENSE.md",

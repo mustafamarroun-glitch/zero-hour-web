@@ -26,7 +26,7 @@ const server=createServer(async(req,res)=>{
           const credential=createHmac('sha1',secret).update(username).digest('base64');
           iceServers=[...iceServers,{urls:[process.env.TURN_URL,'turn:127.0.0.1:3478?transport=udp'],username,credential}];
         }
-        res.writeHead(200,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({rooms:process.env.ROOMS_URL||'/rooms',signaling:process.env.SIGNALING_URL||'/nostr',iceServers,runtime:'3ccaa0e9-compiled-combined-v6'}));return;
+        res.writeHead(200,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({rooms:process.env.ROOMS_URL||'/rooms',signaling:process.env.SIGNALING_URL||'/nostr',iceServers,runtime:'3ccaa0e9-compiled-combined-v6-rf1'}));return;
       }catch(error){
         console.error(`Zero Hour TURN configuration error: ${error.message}`);
         res.writeHead(503,{...headers,'Content-Type':'application/json'});res.end(JSON.stringify({error:'The private game relay is not ready. Restart the Zero Hour streaming session.'}));return;
@@ -58,7 +58,7 @@ roomWss.on('connection',socket=>{
   socket.on('message',raw=>{
     try{
       if(joined)throw Error('Already in a room. Leave before joining another.');
-      const msg=JSON.parse(raw);msg.game=msg.game||'zero-hour';const expectedRuntime={'zero-hour':'3ccaa0e9-compiled-combined-v6',yuri:'ra2-vm-a10ac989'}[msg.game];if(!/^[A-Za-z0-9 _-]{2,12}$/.test(msg.name)||!/^[a-f0-9-]{36}$/.test(msg.guest)||!/^[a-f0-9]{64}$/.test(msg.content)||!expectedRuntime||msg.runtime!==expectedRuntime)throw Error('Invalid commander identity or incompatible runtime.');
+      const msg=JSON.parse(raw);msg.game=msg.game||'zero-hour';const expectedRuntime={'zero-hour':'3ccaa0e9-compiled-combined-v6-rf1',yuri:'ra2-vm-a10ac989'}[msg.game];if(!/^[A-Za-z0-9 _-]{2,12}$/.test(msg.name)||!/^[a-f0-9-]{36}$/.test(msg.guest)||!/^[a-f0-9]{64}$/.test(msg.content)||!expectedRuntime||msg.runtime!==expectedRuntime)throw Error('Invalid commander identity or incompatible runtime.');
       if(msg.action==='create'){
         if(rooms.size>=100)throw Error('Room service is full. Try again later.');
         let code;do{code=randomBytes(4).toString('hex').toUpperCase()}while(rooms.has(code));joined={code,game:msg.game,relayCode:msg.game==='yuri'?randomBytes(12).toString('hex'):undefined,players:[]};rooms.set(code,joined);

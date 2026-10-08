@@ -26,6 +26,13 @@ Use **Remove installed game** to remove this browser's installation while keepin
 
 ## Verification and release
 
+Version **3.0.0** adds detailed engine profiling and rebuilds the Zero Hour
+recorder to flush replay commands once per logic frame. Local skirmish,
+construction, save/load and short replay playback passed without CRC errors.
+Profiling preserves active-game samples after pausing and resets off on launch.
+See [VERSION_3.md](VERSION_3.md) for evidence, build provenance and remaining
+performance limits. Existing imported assets and saves keep their namespaces.
+
 Version **2.3.0** improves stream playback, quality, controls and joining. Internet
 Auto starts at 480p30, cautiously trials higher quality, and lowers quality when
 playback struggles. Bounded catch-up avoids repeated decoder seeks; quality

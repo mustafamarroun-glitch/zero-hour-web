@@ -6,6 +6,11 @@ import {syncLaunchers} from './sync-launchers.mjs';
 import {syncYuriPlayer} from './sync-yuri-player.mjs';
 await syncLaunchers({check:true});
 await syncYuriPlayer({check:true});
+const packageVersion=JSON.parse(await readFile('package.json','utf8')).version;
+const siteVersion=JSON.parse(await readFile('public/version.json','utf8')).version;
+const preferencesSource=await readFile('public/preferences.mjs','utf8');
+const interfaceVersion=preferencesSource.match(/export const VERSION=['"](\d+\.\d+\.\d+)['"]/u)?.[1];
+if(siteVersion!==packageVersion||interfaceVersion!==packageVersion)throw Error(`Release version mismatch: package=${packageVersion}, site=${siteVersion}, interface=${interfaceVersion}`);
 let count=0;const files=[];
 async function walk(dir){for(const e of await readdir(dir,{withFileTypes:true})){const p=resolve(dir,e.name);if(e.isDirectory())await walk(p);else files.push(p)}}
 await walk('public');await walk('tools');
@@ -22,6 +27,10 @@ for(const file of files){
  }
 }
 const manifest=JSON.parse(await readFile('docs/foundation-manifest.json','utf8'));
+const engineBuild=JSON.parse(await readFile('docs/engine-build-manifest.json','utf8'));
+if(engineBuild.runtime!==JSON.parse(await readFile('public/version.json','utf8')).engine)throw Error('Engine build identity mismatch');
+for(const item of [...engineBuild.artifacts,engineBuild.patch]){const bytes=await readFile(item.path);if(createHash('sha256').update(bytes).digest('hex')!==item.sha256)throw Error(`Engine build provenance mismatch: ${item.path}`)}
+if(createHash('sha256').update(await readFile('tools/engine/build-replay.sh')).digest('hex')!==engineBuild.buildScriptSha256)throw Error('Engine build script changed without provenance update');
 const decoder=JSON.parse(await readFile('docs/archive-decoder-manifest.json','utf8'));
 for(const item of decoder.files){const bytes=await readFile(item.path);if(createHash('sha256').update(bytes).digest('hex')!==item.sha256)throw Error(`Changed pinned archive decoder/source: ${item.path}`)}
 for(const item of manifest.files.filter(f=>/dist-threaded-release|source\/NewShoes/.test(f.path))){const b=await readFile(resolve('public',item.path));if(createHash('sha256').update(b).digest('hex')!==(item.publishedSha256||item.sha256))throw Error(`Changed verified artifact ${item.path}`)}

@@ -23,6 +23,7 @@ jobs:
           node-version: '22'
       - run: npm ci
       - run: npm run check
+      - run: node --test tools/test-engine-profiling.mjs
       - run: npm run package
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

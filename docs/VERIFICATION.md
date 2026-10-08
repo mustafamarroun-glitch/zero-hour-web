@@ -1,6 +1,28 @@
 # Independent acceptance record
 
-Updated 2026-10-07. The source project's earlier results are context only; the following checks concern Zero Hour Web.
+Updated 2026-10-08. The source project's earlier results are context only; the following checks concern Zero Hour Web.
+
+## Version 3.0 replay recorder and profiling
+
+The rebuilt Zero Hour engine passed a real six-player Hostile Dawn skirmish,
+builder construction, native save creation/loading and short replay playback
+through the results screen in the Windows in-app browser at 1280x720. Final
+diagnostics confirmed replay playback had occurred, the game had ended, and no
+CRC mismatch, loop error, exception or graphics context loss was recorded.
+
+The real recorder-method fixture preserved serialized bytes for 20 ordinary
+commands, clear-game and empty frames. Ordinary explicit flush calls dropped
+from 21 to 1. Six profiling tests passed, including preservation of active-play
+samples while paused. Live engine confirmation and default-off launch behavior
+were inspected; downloaded reports identified the replacement runtime and
+included 60 active-play samples. Release checks pin original and published
+artifact hashes and retain the patch in the corresponding-source package.
+
+The retained replay flush measurements peaked at 6.505 ms, compared with earlier
+recorder update stalls up to 276.94 ms. These are different scenarios and sparse
+samples, not a controlled FPS comparison. Loading and rendering stalls remain.
+Public deployment verification is separate from the local gameplay evidence.
+Longer busy-battle, Mac and separate-device multiplayer acceptance remain open.
 
 ## Version 2.3 stream experience
 

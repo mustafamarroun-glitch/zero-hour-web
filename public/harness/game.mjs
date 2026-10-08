@@ -1,7 +1,9 @@
 import './storage-scope.js';
 import {assetLibrary} from './launcher-asset-manager.mjs';
+import {PROFILES} from '../game-profiles.mjs';
 import {VERSION} from '../preferences.mjs';
 import {runRuntimeShutdownSequence,runtimeShutdownWarning,settleWithin} from './runtime-shutdown-sequence.mjs';
+import {createFrameProfiler} from './frame-profiling.mjs';
 const params=new URLSearchParams(location.search), name=params.get('commander');
 let ready=false,exiting=false,exitPromise,contextLossReported=false;
 let roomTimer,healthTimer,healthBusy=false,displayBusy=false,showPerformance=false;
@@ -25,6 +27,7 @@ let controlSignature='';
 const controlNames=/^LanGameOptionsMenu\.wnd:ComboBox(PlayerTemplate|Color|Team|Player)([0-7])$/;
 const report=message=>{document.querySelector('#status').textContent=message;parent.postMessage({type:'zh-status',message},location.origin)};
 async function checked(command,payload={}){if(exiting)throw Error('Game is closing.');const result=await window.CnCPort.rpc(command,payload);if(result?.ok===false)throw Error(result.error||`${command} failed`);return result}
+const frameProfiler=createFrameProfiler({rpc:checked});
 function exitRuntime(reason='toolbar'){
   if(exitPromise)return exitPromise;
   exiting=true;ready=false;clearInterval(roomTimer);clearInterval(healthTimer);
@@ -94,6 +97,7 @@ export async function boot(){
       if(healthBusy||displayBusy)return;healthBusy=true;
       try{
         const result=await checked('realEngineFrame',{frames:1});
+        frameProfiler.observe(result.frame);
         const state=result.frame?.clientState;
         parent.postMessage({type:'zh-gameplay',inGame:state?.gameplay?.inGame===true&&!state?.gameplay?.loadingMap},location.origin);
         if(showPerformance){const status=(await checked('threadedStatus')).status;const renderer=status?.graphics?.renderer||'';parent.postMessage({type:'zh-performance',renderer:/SwiftShader/i.test(renderer)?'Software graphics':'Graphics',width:display.width,height:display.height,logicFrame:state?.logicFrame??state?.gameplay?.logicFrame},location.origin)}
@@ -171,6 +175,13 @@ window.addEventListener('message',async e=>{
   if(e.data?.type==='zh-exit'){await exitRuntime();return;}
   if(exiting)return;
   try{
+    if(e.data.type==='zh-profiling'){
+      let error;
+      try{if(!ready)throw Error('Launch the game and wait for the skirmish menu first.');await frameProfiler.set(e.data.enabled);}
+      catch(reason){error=reason.message;}
+      if(!exiting)parent.postMessage({type:'zh-profiling-result',requestId:e.data.requestId,profiling:frameProfiler.snapshot(),error},location.origin);
+      return;
+    }
     if(e.data.type==='zh-volume'){const music=Math.max(0,Math.min(1,Number(e.data.music??e.data.value))),effects=Math.max(0,Math.min(1,Number(e.data.effects??e.data.value)));if(Number.isFinite(music)&&Number.isFinite(effects))await checked('setBrowserAudioMixerVolumes',{scriptVolumes:{music,sound:effects,sound3D:effects,speech:effects}});}
     if(e.data.type==='zh-focus')canvas.focus({preventScroll:true});
     if(e.data.type==='zh-input-neutral'&&ready){const point={x:Math.round(display.width/2),y:Math.round(display.height/2)};await checked('postMessage',{message:0x200,lParam:(point.y<<16)|point.x,point});}
@@ -196,7 +207,8 @@ window.addEventListener('message',async e=>{
         ready?settleWithin(checked('realEngineFrame',{frames:1}),5000,'Game frame'):null,
         params.get('room')?settleWithin(checked('browserWebRtcEndpointState'),5000,'Game transport'):null,
       ]);
-      parent.postMessage({type:'zh-diagnostics',version:VERSION,display,result,frame,transport,userAgent:navigator.userAgent,isolation:crossOriginIsolated,graphics:params.get('shaderTier'),date:new Date().toISOString()},location.origin);
+      if(frame?.ok===true)frameProfiler.observe(frame.value?.frame);
+      parent.postMessage({type:'zh-diagnostics',version:VERSION,runtime:PROFILES['zero-hour'].runtime,display,result,frame,transport,profiling:frameProfiler.snapshot(),userAgent:navigator.userAgent,isolation:crossOriginIsolated,graphics:params.get('shaderTier'),date:new Date().toISOString()},location.origin);
     }
   }catch(error){parent.postMessage({type:'zh-error',message:error.message},location.origin)}
 });

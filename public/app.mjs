@@ -12,6 +12,7 @@ const {assetLibrary}=await import(isYuri?'./yuri/library.mjs':'./harness/launche
 let identity,installed=false,importing=false,importController,backupController,zipUrl,roomSocket,roomState,connecting=false,gameReady=false,inMatch=false,hideTimer,resizeTimer,confirmCallback;
 let preferences=loadPreferences(profile.id),releaseGameFiles,restoreTask=Promise.resolve();
 let libraryBusy=false,launching=false,exiting=false,exitTimer,forceExitTimer,diagnosticRequest;
+let profilingEnabled=false,profilingBusy=false,profilingRequestId,profilingTimer,profilingError='';
 try{identity=JSON.parse(localStorage.getItem(key)||'null')}catch{}
 const error=message=>{recordError(message);$('error').textContent=message;$('error').hidden=!message};
 function view(id){for(const name of ['entry','setup','lobby','room'])$(name).hidden=name!==id;error('')}
@@ -90,14 +91,14 @@ async function launch(room){
     const url=new URL(isYuri?'./yuri/play.html':'./harness/game.html',import.meta.url);url.searchParams.set('commander',identity.name);url.searchParams.set('shaderTier',preferences.graphics);const size=currentResolution();url.searchParams.set('width',size.width);url.searchParams.set('height',size.height);
     if(isYuri){await assetLibrary.configureForLaunch(preferences,identity.name);releaseGameFiles=await assetLibrary.holdForGame();url.searchParams.set('settings',JSON.stringify(preferences));if(room)url.searchParams.set('session',room.relayCode);}
     if(room){url.searchParams.set('room',room.code);url.searchParams.set('guest',identity.guest);url.searchParams.set('host',room.players.find(p=>p.name===identity.name)?.host?'1':'0');}
-    gameReady=false;inMatch=false;$('gameName').textContent=identity.name;$('gameStatus').textContent='Restoring local files…';$('gameFrame').src=url.href;$('gameView').hidden=false;document.body.classList.add('playing');document.querySelector('header').inert=document.querySelector('main').inert=document.querySelector('footer').inert=true;setToolbar(true);$('gameFrame').focus();
+    gameReady=false;inMatch=false;resetProfiling();$('gameName').textContent=identity.name;$('gameStatus').textContent='Restoring local files…';$('gameFrame').src=url.href;$('gameView').hidden=false;document.body.classList.add('playing');document.querySelector('header').inert=document.querySelector('main').inert=document.querySelector('footer').inert=true;setToolbar(true);$('gameFrame').focus();
   }catch(e){await releaseGameFiles?.();releaseGameFiles=null;installed=!!assetLibrary.installedLibrary();if(!installed){view('setup');$('backToLibrary').hidden=true}error(e.message)}finally{launching=false;$('solo').disabled=false;$('roomLaunch').disabled=!!roomState&&!roomState.compatible}
 }
 $('solo').onclick=()=>launch();
 $('exitGame').onclick=()=>{if(isYuri||inMatch)confirmAction('Exit this match?',isYuri?'Save inside Yuri first. This closes the game session. Installed files and committed saves are kept.':'Your current match will end. The engine will flush local saves before closing.','Exit game',exitGame);else exitGame()};
-function watchExit(){if(exiting)return;exiting=true;setToolbar(true);$('exitGame').disabled=true;$('gameStatus').textContent='Saving and shutting down…';forceExitTimer=setTimeout(()=>{$('forceExit').hidden=false;$('gameStatus').textContent='Shutdown is taking longer. You can wait or force close.'},12000);exitTimer=setTimeout(()=>closeGame('Game force-closed after shutdown timed out. The latest save could not be confirmed.'),60000)}
+function watchExit(){if(exiting)return;exiting=true;syncProfiling();setToolbar(true);$('exitGame').disabled=true;$('gameStatus').textContent='Saving and shutting down…';forceExitTimer=setTimeout(()=>{$('forceExit').hidden=false;$('gameStatus').textContent='Shutdown is taking longer. You can wait or force close.'},12000);exitTimer=setTimeout(()=>closeGame('Game force-closed after shutdown timed out. The latest save could not be confirmed.'),60000)}
 function exitGame(){if(isYuri){closeGame();return}watchExit();postGame({type:'zh-exit'})}
-function closeGame(warning){clearTimeout(exitTimer);clearTimeout(forceExitTimer);clearTimeout(hideTimer);exiting=false;gameReady=false;inMatch=false;$('settings').close();$('help').close();$('confirmAction').close();$('graphicsLost').close();$('gameFrame').src='about:blank';$('gameView').hidden=true;document.body.classList.remove('playing');document.querySelector('header').inert=document.querySelector('main').inert=document.querySelector('footer').inert=false;releaseGameFiles?.();releaseGameFiles=null;$('matchControls').hidden=true;$('matchControls').replaceChildren();$('exitGame').disabled=false;$('forceExit').hidden=true;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});if(warning)error(warning);else $('maintenanceStatus').textContent='Game closed. Your installed files are ready for another launch.';$('solo').focus();}
+function closeGame(warning){clearTimeout(exitTimer);clearTimeout(forceExitTimer);clearTimeout(hideTimer);exiting=false;gameReady=false;inMatch=false;resetProfiling();$('settings').close();$('help').close();$('confirmAction').close();$('graphicsLost').close();$('gameFrame').src='about:blank';$('gameView').hidden=true;document.body.classList.remove('playing');document.querySelector('header').inert=document.querySelector('main').inert=document.querySelector('footer').inert=false;releaseGameFiles?.();releaseGameFiles=null;$('matchControls').hidden=true;$('matchControls').replaceChildren();$('exitGame').disabled=false;$('forceExit').hidden=true;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});if(warning)error(warning);else $('maintenanceStatus').textContent='Game closed. Your installed files are ready for another launch.';$('solo').focus();}
 $('forceExit').onclick=()=>confirmAction('Force close the game?','The latest save may not have finished writing. Previously stored saves and your installation will remain.','Force close',()=>closeGame('Game force-closed. The latest save could not be confirmed.'));
 $('fullscreen').onclick=toggleFullscreen;
 $('sound').oninput=()=>{preferences.effects=Number($('sound').value);syncPreferences();sendAudio()};
@@ -141,7 +142,7 @@ window.addEventListener('message',e=>{
   if(e.origin!==location.origin||e.source!==$('gameFrame').contentWindow)return;
   const d=e.data;
   if(d.type==='zh-ready'&&!exiting){
-    gameReady=true;sendAudio();sendDisplay(false);scheduleHide();
+    gameReady=true;syncProfiling();sendAudio();sendDisplay(false);scheduleHide();
     const host=roomState?.players.find(p=>p.name===identity.name)?.host;
     $('gameReady').hidden=isYuri||!roomState;$('gameStart').hidden=isYuri||!host;$('gameMap').hidden=isYuri||!host;
   }
@@ -172,10 +173,31 @@ window.addEventListener('message',e=>{
 });
 $('nameForm').querySelector('button').disabled=false;
 syncPreferences(false);
+syncProfiling();
 cleanArchiveStaging({profile:profile.archiveProfile}).catch(()=>{});
 restore();
 
 function postGame(data){if(!$('gameView').hidden)$('gameFrame').contentWindow.postMessage(data,location.origin)}
+function syncProfiling(){
+  $('profilingTools').hidden=isYuri;
+  const input=$('engineProfiling');input.checked=profilingEnabled===true;input.indeterminate=profilingEnabled===null;input.disabled=isYuri||!gameReady||exiting||profilingBusy;
+  $('profilingStatus').textContent=profilingBusy?'Waiting for the engine…':profilingError||(profilingEnabled===true?'On · confirmed by the engine. Reproduce the slowdown, then download diagnostics.':profilingEnabled===null?'State unknown. Retry, or exit and relaunch to turn profiling off.':gameReady?'Off · ready to record.':'Off. Launch a game to enable profiling.');
+}
+function resetProfiling(){clearTimeout(profilingTimer);profilingRequestId=null;profilingEnabled=false;profilingBusy=false;profilingError='';syncProfiling()}
+$('engineProfiling').onchange=()=>{
+  if(isYuri||!gameReady||exiting||profilingBusy){syncProfiling();return;}
+  const enabled=$('engineProfiling').checked,requestId=crypto.randomUUID();
+  profilingRequestId=requestId;profilingBusy=true;profilingError='';syncProfiling();
+  profilingTimer=setTimeout(()=>{if(profilingRequestId!==requestId)return;profilingBusy=false;profilingEnabled=null;profilingError='The engine has not confirmed the change. Retry, or exit and relaunch to turn profiling off.';syncProfiling()},8000);
+  postGame({type:'zh-profiling',enabled,requestId});
+};
+window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||e.source!==$('gameFrame').contentWindow||$('gameView').hidden||exiting)return;
+  const d=e.data;
+  if(d?.type!=='zh-profiling-result'||d.requestId!==profilingRequestId)return;
+  clearTimeout(profilingTimer);profilingBusy=false;profilingEnabled=typeof d.profiling?.enabled==='boolean'?d.profiling.enabled:null;profilingError=d.error||'';
+  if(profilingError)recordError(profilingError);syncProfiling();
+});
 function currentResolution(){return resolutionSize(preferences.resolution,$('gameFrame').clientWidth||innerWidth,$('gameFrame').clientHeight||innerHeight)}
 function sendAudio(){if(isYuri){$('settingsStatus').textContent='Yuri audio changes are saved and apply on your next launch.';return}if(gameReady)postGame({type:'zh-volume',music:preferences.music/100,effects:preferences.effects/100})}
 function sendDisplay(resize=true){if(isYuri){postGame({type:'zh-display',performance:preferences.performance});$('settingsStatus').textContent='Yuri display and scrolling changes are saved and apply on your next launch.';return}if(gameReady)postGame({type:'zh-display',...currentResolution(),resize,scaling:preferences.scaling,edgeScroll:preferences.edgeScroll,performance:preferences.performance})}

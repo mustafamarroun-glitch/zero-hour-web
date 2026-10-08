@@ -98,7 +98,7 @@ try:
         try:
             with urlopen('http://127.0.0.1:8098/network-config.json', timeout=.5) as response:
                 config = json.load(response)
-            if config.get('runtime') == '3ccaa0e9-compiled-combined-v6' and any(
+            if config.get('runtime') == '3ccaa0e9-compiled-combined-v6-rf1' and any(
                 'turn:' in ' '.join(server.get('urls', [])) for server in config.get('iceServers', [])
             ):
                 break

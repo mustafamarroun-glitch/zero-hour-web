@@ -8,3 +8,5 @@ public/dist-threaded-release/* -text
 public/yuri/engine/** -text
 public/yuri/relay/** -text
 tools/yuri-relay/relay.cjs -text
+# Unified diff context preserves source tabs and blank lines after its prefix.
+tools/engine/*.patch -whitespace
