@@ -1,0 +1,50 @@
+/* Landing extends the field-manual visual system. */
+.landing .masthead nav{display:flex;flex-wrap:wrap;gap:28px;font-size:14px}
+.landing .wordmark{text-transform:none}
+.landing main{padding-top:58px;padding-bottom:50px}
+.skip-link{position:fixed;top:12px;left:12px;z-index:20;padding:12px 18px;background:var(--paper);border:1px solid var(--control);transform:translateY(-180%)}
+.skip-link:focus{transform:translateY(0)}
+.landing-intro{display:grid;grid-template-columns:1.2fr 1fr;gap:70px;align-items:center;margin-bottom:48px}
+.landing-intro h1{font-size:clamp(48px,6vw,84px);margin:0;line-height:.98}
+.landing-intro>div>p:first-child{font-size:22px;margin-bottom:14px}
+.landing-intro .muted{font-size:15px;max-width:45ch;margin:0}
+.game-directory{scroll-margin-top:24px}
+.featured-game{display:grid;grid-template-columns:1.2fr 1fr;gap:70px;padding:38px 42px;background:var(--hover);border-radius:8px;align-items:center}
+.featured-game h2{font-size:clamp(44px,5vw,64px);margin:0 0 8px}
+.featured-game>div>p{margin:0;color:var(--muted)}
+.featured-game .game-description>p{margin:0 0 22px;color:var(--ink)}
+.landing .button-link{width:fit-content;max-width:100%;min-height:46px;text-decoration:none}
+.other-games{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:36px}
+.other-games article{display:flex;flex-direction:column;align-items:flex-start;padding:0 0 34px}
+.other-games h2{font-size:36px;margin:0 0 6px}
+.game-subtitle{font-size:13px;color:var(--muted);margin-bottom:20px}
+.other-games article>p{max-width:45ch;margin-bottom:22px}
+.other-games .button-link{margin-top:auto}
+.stream-invitation{display:flex;gap:40px;align-items:center;justify-content:space-between;padding:28px 0;border-block:1px solid var(--rule)}
+.stream-invitation h2{margin:0 0 10px;font-size:30px}
+.stream-invitation p{margin:0;max-width:65ch;font-size:15px}
+.stream-invitation>a{flex-shrink:0}
+.getting-started{display:grid;grid-template-columns:1fr 1.6fr;gap:60px;margin-top:58px;scroll-margin-top:24px}
+.getting-started h2{font-size:38px;margin-bottom:16px}
+.getting-started .muted{font-size:14px;max-width:35ch}
+.getting-started ol{list-style:none;counter-reset:steps;display:grid;gap:22px;margin:0;padding:0}
+.getting-started li{counter-increment:steps;display:grid;grid-template-columns:28px 1fr;column-gap:14px}
+.getting-started li::before{content:counter(steps);font-family:Rajdhani,sans-serif;font-size:26px;line-height:1.2;color:var(--olive);grid-row:span 2}
+.getting-started h3{font-size:17px;font-weight:600;margin:0 0 4px;line-height:1.4}
+.getting-started li p{font-size:14px;color:var(--muted);margin:0}
+.landing-note{font-size:13px;color:var(--muted);max-width:80ch;margin:36px 0 0}
+.landing a:focus-visible,.landing button:focus-visible{outline:3px solid var(--olive);outline-offset:5px}
+.landing .button-link:hover{background:var(--hover)}
+.landing .primary:hover{background:var(--primary-hover)}
+@media(max-width:850px){.landing .masthead nav{order:3;flex-basis:100%;gap:24px}.landing .masthead{justify-content:space-between}.landing main{padding-top:36px}.landing-intro{grid-template-columns:1fr;gap:22px;margin-bottom:32px}.landing-intro h1{font-size:clamp(48px,10vw,72px)}.landing-intro>div>p:first-child{font-size:20px}.featured-game{grid-template-columns:1fr;gap:22px;padding:28px 24px}.other-games{gap:28px}.other-games h2{font-size:32px}.getting-started{grid-template-columns:1fr;gap:24px;margin-top:38px}.getting-started h2 br{display:none}.getting-started .muted{max-width:65ch}.stream-invitation{align-items:flex-start;gap:20px}}
+@media(max-width:520px){.other-games{grid-template-columns:1fr;gap:0;margin-top:30px}.other-games article+article{border-top:1px solid var(--rule);padding-top:28px}.stream-invitation{flex-direction:column}.landing footer div{gap:16px}.landing-intro h1{font-size:54px}.landing .masthead nav{font-size:13px}}
+
+/* Comfortable hit areas for navigation and reflow under larger text. */
+.landing .masthead nav a,.landing .masthead .wordmark,.landing #landingTheme,.landing footer a{display:inline-flex;align-items:center;min-height:44px}
+.landing .masthead nav a,.landing footer a{padding-block:10px}
+.landing .masthead .wordmark{gap:20px}
+.landing #landingTheme{padding:10px 0}
+.landing h1,.landing h2,.landing h3,.landing p,.landing .button-link{overflow-wrap:anywhere}
+.landing-intro>div,.featured-game>div,.other-games article,.getting-started>div,.getting-started ol{min-width:0}
+.landing section:focus-visible{outline:3px solid var(--olive);outline-offset:8px}
+@media(max-width:850px){.landing .masthead{position:relative;padding-bottom:8px}.landing .masthead nav{margin-top:-8px}.landing .wordmark{white-space:normal}.landing .masthead nav a{padding-inline:4px}.landing .masthead nav{margin-inline:-4px}}

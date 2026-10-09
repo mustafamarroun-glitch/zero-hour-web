@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 runBrowserTest(async()=>{
  const results=[];
- for(const routePath of ['yuri/','shockwave/','']){
+ for(const routePath of ['yuri/','shockwave/','zero-hour.html']){
   const ctx=await launchTestContext(chromium,'static-startup',{channel:'chrome',headless:true}),events=[];
   try{
    await ctx.exposeFunction('recordStartupState',value=>events.push(value));

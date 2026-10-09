@@ -1,4 +1,4 @@
-# Zero Hour Web
+# ZeroHour Web
 
 ## Platform
 Desktop web, with mobile setup guidance.
@@ -7,7 +7,7 @@ Desktop web, with mobile setup guidance.
 Delegated by the supplied brief: static HTML/CSS/modules, New Shoes threaded WebAssembly, local OPFS import, a separate Node signaling service.
 
 ## Purpose
-Open the website, choose Zero Hour, Yuri’s Revenge or ShockWave 1.201, enter a commander name, import compatible player-owned files locally, and play through each game’s own runtime and network protocol. The three games share setup, ZIP/RAR/folder import, installed-file recovery, ZIP backup, settings and room controls. Yuri uses its original Network lobby after launch.
+Open the website to a landing page, choose ZeroHour, Yuri’s Revenge or ShockWave 1.201, enter a commander name, import compatible player-owned files locally, and play through each game’s own runtime and network protocol. The three games share setup, ZIP/RAR/folder import, installed-file recovery, ZIP backup, settings and room controls. Yuri uses its original Network lobby after launch.
 
 Stream game also connects a guest to an independent Zero Hour session on the
 host laptop. A private HTTPS invite works through a running Internet tunnel;

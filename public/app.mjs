@@ -19,7 +19,7 @@ function view(id){for(const name of ['entry','setup','lobby','room'])$(name).hid
 function setImportCopy(replacement){
   const replacing=replacement&&installed;
   $('setupTitle').textContent=replacing?'Replace your installed game.':'Prepare for deployment.';
-  $('setupDescription').textContent=replacing?`Choose a compatible ZIP, RAR, or ${isYuri||isShockwave?'game':'Data'} folder. Your current installation stays available until the replacement passes validation.`:`Import your compatible ${isYuri?'Red Alert 2 + Yuri’s Revenge':isShockwave?'Zero Hour base + ShockWave 1.201':'Generals + Zero Hour'} files. They stay on this device.`;
+  $('setupDescription').textContent=replacing?`Choose a compatible ZIP, RAR, or ${isYuri||isShockwave?'game':'Data'} folder. Your current installation stays available until the replacement passes validation.`:`Import your compatible ${isYuri?'Red Alert 2 + Yuri’s Revenge':isShockwave?'ZeroHour base + ShockWave 1.201':'Generals + ZeroHour'} files. They stay on this device.`;
 }
 function showSetup(replacement=false){setImportCopy(replacement);view('setup');$('backToLibrary').hidden=!installed;if(replacement)setTimeout(()=>{if(!$('setup').hidden)$('chooseFolder').focus()},0)}
 function progress(p){const stage=p.phase==='scan'?'Validating files':p.phase==='prepare'?'Saving game files':p.phase||'Processing local files';$('installProgress').textContent=`${stage}${p.detail?`: ${p.detail}`:''}`;$('progress').hidden=false;const total=p.totalBytes||p.total;const completed=p.completedBytes||p.completed||0;if(total)$('progress').value=completed/total;else $('progress').removeAttribute('value')}

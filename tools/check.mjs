@@ -18,6 +18,10 @@ const siteVersion=JSON.parse(await readFile('public/version.json','utf8')).versi
 const preferencesSource=await readFile('public/preferences.mjs','utf8');
 const interfaceVersion=preferencesSource.match(/export const VERSION=['"](\d+\.\d+\.\d+)['"]/u)?.[1];
 if(siteVersion!==packageVersion||interfaceVersion!==packageVersion)throw Error(`Release version mismatch: package=${packageVersion}, site=${siteVersion}, interface=${interfaceVersion}`);
+for(const page of ['public/index.html','public/zero-hour.html','public/yuri/index.html','public/shockwave/index.html','public/stream/index.html']){
+ const html=await readFile(page,'utf8');
+ if(!html.includes('Version '+packageVersion)&&!html.includes('WEB · '+packageVersion))throw Error('Visible release version mismatch: '+page);
+}
 let count=0;const files=[];
 async function walk(dir){for(const e of await readdir(dir,{withFileTypes:true})){const p=resolve(dir,e.name);if(e.isDirectory())await walk(p);else files.push(p)}}
 await walk('public');await walk('tools');

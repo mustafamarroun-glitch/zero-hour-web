@@ -1,7 +1,7 @@
 const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs/promises');const path=require('node:path');
 runBrowserTest(async()=>{
- const site=process.env.ZH_SITE_URL||'http://localhost:8093/',profile=process.env.ZH_PROFILE||'.local/acceptance-browser',reportFile=process.env.ZH_REPORT||'.local/solo-verification.json';
+ const site=process.env.ZH_SITE_URL||'http://localhost:8093/zero-hour.html',profile=process.env.ZH_PROFILE||'.local/acceptance-browser',reportFile=process.env.ZH_REPORT||'.local/solo-verification.json';
  const software=process.env.ZH_RENDERER!=='hardware';
  const report={checks:[],errors:[],missing:[],site,rendererRequested:software?'SwiftShader':'Default Windows Chrome',scope:'Windows Chrome, headless disposable standalone profile, actual installed retail archives'};
  const ctx=await launchTestContext(chromium,path.resolve(profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]});
