@@ -35,7 +35,7 @@ export async function syncLaunchers({check=false}={}){
   .replace('Import your compatible Generals + Zero Hour files.','Import your compatible Zero Hour base + ShockWave 1.201 files.')
   .replace('installation’s <strong>Data folder</strong>','prepared <strong>ShockWave game folder</strong>')
   .replace('required archives and their contents','base archives and the 11 official ShockWave archives')
-  .replace('accept=".big,.iso,.bin,.cue"','accept=".big,.gib"')
+  .replace('accept=".big,.iso,.bin,.cue"','accept=".big,.gib,.ani"')
   .replace('Allow roughly 2 GB of browser storage for the tested profile','Allow roughly 3 GB of separate browser storage for ShockWave')
   .replace(/<div class="get-files">[\s\S]*?<\/div><\/div>/,'<div class="get-files"><h2>Prepare ShockWave</h2><p>Use the official 1.201 mod with your compatible Zero Hour base files. The downloaded installer ZIP alone is not a playable package.</p><p>Keep the 11 active mod archives together with the base archives in one folder or ZIP. Original .gib files are supported. Windows installers and launchers are not executed.</p><div class="actions"><a class="button-link" href="'+PROFILES.shockwave.download+'" target="_blank" rel="noopener noreferrer">Official ShockWave download</a><a class="button-link" href="../shockwave/setup.html">Preparation guide</a></div></div>')
   .replace('download="Zero-Hour-backup.zip"',`download="${PROFILES.shockwave.backup}"`)

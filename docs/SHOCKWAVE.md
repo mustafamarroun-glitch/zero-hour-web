@@ -20,7 +20,8 @@ managed mount names preserve the official override order. A ZIP/RAR containing
 only the Windows installer cannot be played directly in the browser.
 
 `tools/prepare-shockwave.py` copies player-owned base and extracted/installed mod
-archives into a new private folder, verifying all copies. It refuses existing
+archives and the original `Data/Cursors/*.ani` artwork into a new private folder,
+verifying all copies. It refuses existing
 outputs. Example from the project:
 
 ```powershell
@@ -50,7 +51,18 @@ Browser-wide clearing and origin quota still affect all games at that origin.
 Replacement stages base and mod files, then commits one combined manifest.
 Cancellation or validation failure preserves the old installation. Removal
 targets this game's archives and preserves settings and committed saves. ZIP
-backups contain base and mod archives; saves are separate.
+backups contain base and mod archives; saves and cursor artwork are separate.
+
+### Original mouse cursor (3.1.1)
+
+The initial prepared folder omitted the 52 original ANI cursor files, causing
+the white browser pointer. New prepared folders include them. To repair an
+existing installation, finish and exit the match, refresh the launcher, then
+open **Installed files & recovery → Import another installation → Select files**.
+Select all `.ani` files in the prepared folder's `Data/Cursors` directory. This
+small import validates and packs the animations in place, preserving the 28
+archive paths, settings, mod save context and multiplayer content identity.
+No full game reimport is required. Cursor artwork stays browser-local.
 
 Rooms use ID `shockwave`, runtime
 `3ccaa0e9-compiled-combined-v6-rf1-shockwave-1.201-v1`, and a content fingerprint
@@ -70,3 +82,7 @@ or Internet gameplay. Reports remain in `.local/`.
 
 Run `node tools/check.mjs` and `node tools/package.mjs` before release. Publication
 is separate from the local build and requires a release request.
+
+`ZH_PROFILE=<retained managed profile> node tools/verify-shockwave-cursors.cjs`
+checks invalid artwork rejection, an in-place 52-file import, native save
+presence, original animated battlefield cursor and persistence after reload.

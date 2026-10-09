@@ -2,10 +2,13 @@ import '../harness/storage-scope.js';
 import { assetLibrary as base } from '../harness/launcher-asset-manager.mjs';
 import { createModContext, saveModLibrary, saveActiveModContext, normalizeInstalledMod, activeModMountPlan } from '../harness/mod-context.mjs';
 import { modContentHash } from '../harness/mod-package-format.mjs';
+import { createOriginalCursorManifest, ORIGINAL_CURSOR_PACK_NAME } from '../harness/original-cursor-assets.mjs';
+import {buildCursorPack} from './cursor-pack.mjs';
 import { SHOCKWAVE_ARCHIVES, SHOCKWAVE_VERSION, selectShockwaveFiles, validateShockwaveFile } from './package.mjs';
 
 const KEY = 'zeroh-installed-library.combined.v6';
 let sources;
+let cursorUpdate;
 let preparedMods = [];
 const fileAt = async path => {
   const parts = path.split('/'), name = parts.pop(); let directory = await navigator.storage.getDirectory();
@@ -32,7 +35,16 @@ const overrides = {
     return mod ? { ...installation, archives: [...installation.archives, ...mod.archives.map(item => ({ ...item, bytes: item.size }))] } : null;
   },
   async scan(files, options = {}) {
-    sources = null;
+    sources = null;cursorUpdate=null;
+    if(files.length&&files.every(file=>/\.ani$/i.test(file.name))){
+      if(!modFrom(base.installedLibrary()))throw Error('Install ShockWave before adding cursor artwork.');
+      options.onProgress?.({phase:'Checking cursor artwork'});
+      const pack=await buildCursorPack(files,options);
+      // Validate all embedded frames, not just the ANI container headers.
+      const library=createOriginalCursorManifest(pack.bytes);library.dispose();
+      cursorUpdate=pack;
+      return {ok:true,cursorOnly:true,cursorCount:pack.entryCount};
+    }
     const selected = selectShockwaveFiles(files);
     for (const { file, spec } of selected) {
       options.signal?.throwIfAborted();
@@ -44,6 +56,30 @@ const overrides = {
     return result;
   },
   async prepare(mode, progress = () => {}, { signal } = {}) {
+    if(mode==='install'&&cursorUpdate){
+      const pack=cursorUpdate;
+      return base.withLibraryMutation(async()=>{
+        signal?.throwIfAborted();const installation=base.installedLibrary();
+        if(!modFrom(installation))throw Error('The ShockWave installation changed. Retry adding cursors.');
+        let directory=await navigator.storage.getDirectory();
+        for(const part of installation.root.split('/'))directory=await directory.getDirectoryHandle(part);
+        const oldBytes=installation.cursorAsset?new Uint8Array(await(await fileAt(installation.cursorAsset.opfsPath)).arrayBuffer()):null;
+        const handle=await directory.getFileHandle(ORIGINAL_CURSOR_PACK_NAME,{create:true});
+        const writer=await handle.createWritable();let written=false;
+        try{
+          progress({phase:'Saving original game cursors'});await writer.write(pack.bytes);signal?.throwIfAborted();await writer.close();written=true;
+          const cursorAsset={name:ORIGINAL_CURSOR_PACK_NAME,bytes:pack.bytes.length,entryCount:pack.entryCount,opfsPath:`${installation.root}/${ORIGINAL_CURSOR_PACK_NAME}`};
+          localStorage.setItem(KEY,JSON.stringify({...installation,cursorAsset,totalBytes:installation.totalBytes-(installation.cursorAsset?.bytes||0)+cursorAsset.bytes}));
+          cursorUpdate=null;base.setPreparedCursorAsset(cursorAsset);base.lastValidationError=null;
+          return {cursorOnly:true};
+        }catch(error){
+          if(!written){await writer.abort().catch(()=>{});if(!oldBytes)await directory.removeEntry(ORIGINAL_CURSOR_PACK_NAME).catch(()=>{});}
+          else if(oldBytes){const rollback=await handle.createWritable();await rollback.write(oldBytes);await rollback.close();}
+          else await directory.removeEntry(ORIGINAL_CURSOR_PACK_NAME);
+          throw error;
+        }
+      });
+    }
     if (mode !== 'install' || !sources) throw Error('Choose the complete ShockWave installation before importing.');
     const result = await base.withLibraryMutation(async () => {
       const previous = base.installedLibrary();

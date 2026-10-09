@@ -2,6 +2,19 @@
 
 Updated 2026-10-09. The source project's earlier results are context only; the following checks concern Zero Hour Web.
 
+## Version 3.1.1 ShockWave cursor repair
+
+The private prepared folder now contains the 52 original ANI cursor files,
+hash-verified against the untouched native installation. An isolated Windows
+Chrome profile passed malformed artwork rejection and a cursor-only import
+without replacing any of the 28 archives, settings or mod content identity.
+The existing native save remained mounted. On a real Special Weapons general
+battlefield, the engine requested `SCCSelect.ANI` and the browser loaded its
+eight original frames, animated them and used hotspot `[15,16]`. Clean exit
+and reload retained the imported artwork. No browser page errors occurred.
+The user's already-running match was not interrupted or modified; their
+browser installation needs the small artwork import after exit and refresh.
+
 ## Version 3.1 ShockWave
 
 The supplied ShockWave 1.201 ZIP matched the developer's published size and MD5.

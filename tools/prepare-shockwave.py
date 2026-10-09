@@ -15,6 +15,24 @@ def digest(path):
     with path.open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
+def copy_cursors(base, output):
+    """Copy native artwork into the private package without changing the source."""
+    source = base / 'Data' / 'Cursors'
+    cursors = sorted(source.glob('*.ani'))
+    if not {'sccpointer.ani', 'sccattack.ani'}.issubset({p.name.lower() for p in cursors}):
+        raise ValueError(f'Missing original cursor artwork in {source}')
+    destination = output / 'Data' / 'Cursors'
+    destination.mkdir(parents=True, exist_ok=True)
+    for cursor in cursors:
+        target = destination / cursor.name
+        if target.exists() and digest(target) != digest(cursor):
+            raise ValueError(f'Existing cursor differs: {target}')
+        if not target.exists():
+            shutil.copyfile(cursor, target)
+        if digest(target) != digest(cursor):
+            raise ValueError(f'Cursor copy verification failed: {cursor.name}')
+    return len(cursors)
+
 def prepare(base, mod, output):
     base, mod, output = (Path(p).resolve() for p in (base, mod, output))
     if output == base or output == mod or output in base.parents or output in mod.parents:
@@ -46,8 +64,9 @@ def prepare(base, mod, output):
         shutil.copyfile(source, output / name)
         if digest(output / name) != record['sha256']:
             raise ValueError(f'Copy verification failed: {name}')
-    (output / 'browser-package.json').write_text(json.dumps({'game': 'shockwave', 'version': '1.201', 'files': inventory}, indent=2))
-    print(json.dumps({'folder': str(output), 'archives': len(files), 'bytes': sum(i['bytes'] for i in inventory), 'verified': True}))
+    cursor_count = copy_cursors(base, output)
+    (output / 'browser-package.json').write_text(json.dumps({'game': 'shockwave', 'version': '1.201', 'files': inventory, 'cursorFiles': cursor_count}, indent=2))
+    print(json.dumps({'folder': str(output), 'archives': len(files), 'cursorFiles': cursor_count, 'bytes': sum(i['bytes'] for i in inventory), 'verified': True}))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
