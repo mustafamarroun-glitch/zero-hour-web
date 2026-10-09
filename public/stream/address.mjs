@@ -11,3 +11,12 @@ export function streamAddress(value,site='https://mustafamarroun-glitch.github.i
   }
   return url;
 }
+
+// Match complete hostnames: a public domain named localhost.example is remote.
+export function streamTransport(url) {
+  const host=url.hostname;
+  if(host==='localhost'||host==='[::1]')return 'lan';
+  if(!/^\d+\.\d+\.\d+\.\d+$/.test(host))return 'internet';
+  const [a,b]=host.split('.').map(Number);
+  return a===127||a===10||a===192&&b===168||a===172&&b>=16&&b<=31?'lan':'internet';
+}

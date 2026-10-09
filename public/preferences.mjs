@@ -1,5 +1,5 @@
 import './harness/storage-scope.js';
-export const VERSION='3.2.0';
+export const VERSION='3.2.1';
 export const DEFAULTS=Object.freeze({dark:true,autoHide:true,resolution:'1280x720',scaling:'fit',edgeScroll:true,music:75,effects:75,performance:false,graphics:'ff'});
 export function gameDefaults(game='zero-hour'){
   return {...DEFAULTS,...(game==='yuri'?{resolution:'800x600'}:{})};

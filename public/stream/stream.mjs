@@ -1,4 +1,4 @@
-import {streamAddress} from './address.mjs';
+import {streamAddress,streamTransport} from './address.mjs';
 const form=document.querySelector('#streamForm'),input=document.querySelector('#streamAddress');
 const error=document.querySelector('#streamError'),host=document.querySelector('#streamHost');
 const invite=new URL(location.href).searchParams.get('host');
@@ -13,8 +13,7 @@ form.addEventListener('submit',event=>{
   event.preventDefault();
   try{
     const url=streamAddress(input.value);
-    const local=/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url.hostname);
-    url.searchParams.set('transport',local?'lan':'internet');
+    url.searchParams.set('transport',streamTransport(url));
     location.assign(url.href);
   }catch(problem){error.textContent=problem.message;error.hidden=false;input.focus()}
 });
