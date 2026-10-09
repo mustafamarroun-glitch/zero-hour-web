@@ -1,6 +1,10 @@
 # Runtime and product boundaries
 
-Both launchers use `public/app.mjs`, `style.css`, preferences, archive extraction and recovery controls. `public/index.html` is the canonical template; `tools/sync-launchers.mjs` generates `/yuri/index.html` with game-specific copy and links. `game-profiles.mjs` selects runtime, download and storage adapters. The checker rejects generated-page drift and packaging regenerates it.
+ShockWave 1.201 adds `/shockwave/` using New Shoes' managed mod mount. It has
+separate settings, OPFS and IndexedDB, and room fingerprints include base and mod
+archives. See [SHOCKWAVE.md](SHOCKWAVE.md) for installation and save boundaries.
+
+All three launchers use `public/app.mjs`, `style.css`, preferences, archive extraction and recovery controls. `public/index.html` is the canonical template; `tools/sync-launchers.mjs` generates `/yuri/index.html` and `/shockwave/index.html` with game-specific copy and links. `game-profiles.mjs` selects runtime, download and storage adapters. The checker rejects generated-page drift and packaging regenerates it.
 
 Yuri uses the separate RA2 VM runtime, an atomic IndexedDB file library and an independent WebSocket relay on `/yuri-<internal relay code>`. The shared `/rooms` service distinguishes game/runtime/content, exposes eight-character invite codes and assigns Yuri a separate 96-bit relay code. See [YURI.md](YURI.md) for implementation and verification limits. The Zero Hour architecture below remains its own engine/network path.
 

@@ -8,7 +8,7 @@ function pathName(name){
   return path;
 }
 let profile='zero-hour';
-const wanted=path=>profile==='yuri'?/\.(?:mix|exe|dll|ini|tlb|dat|lcf|dsk|256|016|mmx|yro|mpr|yrm|map|wav|txt|fnt|shp|vxl|hva|csf|pal|aud)$/i.test(path):/\.big$/i.test(path)||/(?:^|\/)cursors\/[a-z0-9_ -]+\.ani$/i.test(path);
+const wanted=path=>profile==='yuri'?/\.(?:mix|exe|dll|ini|tlb|dat|lcf|dsk|256|016|mmx|yro|mpr|yrm|map|wav|txt|fnt|shp|vxl|hva|csf|pal|aud)$/i.test(path):(profile==='shockwave'?/\.(?:big|gib)$/i:/\.big$/i).test(path)||/(?:^|\/)cursors\/[a-z0-9_ -]+\.ani$/i.test(path);
 function validate(entries){
   if(!entries.length||entries.length>MAX_FILES)throw Error('Archive is empty or contains too many entries.');
   const seen=new Set(),basenames=new Set();let total=0;

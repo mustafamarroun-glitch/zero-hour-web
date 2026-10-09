@@ -4,6 +4,7 @@ output/
 release/
 .impeccable/review/
 *.big
+*.gib
 *.bik
 *.sav
 *.rep

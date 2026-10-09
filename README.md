@@ -26,6 +26,13 @@ Use **Remove installed game** to remove this browser's installation while keepin
 
 ## Verification and release
 
+Version **3.1.0** adds **ShockWave 1.201** as a separate game at `/shockwave/`,
+with its own settings, imported files, save context and friend rooms. Zero Hour
+and Yuri retain their existing configurations. Import compatible base archives
+and the 11 official mod archives; the installer ZIP alone is not playable in the
+browser. See [ShockWave preparation and verification](docs/SHOCKWAVE.md).
+This local build is pending publication and separate-device acceptance.
+
 Version **3.0.0** adds detailed engine profiling and rebuilds the Zero Hour
 recorder to flush replay commands once per logic frame. Local skirmish,
 construction, save/load and short replay playback passed without CRC errors.

@@ -1,10 +1,11 @@
 import './storage-scope.js';
-import {assetLibrary} from './launcher-asset-manager.mjs';
 import {PROFILES} from '../game-profiles.mjs';
 import {VERSION} from '../preferences.mjs';
 import {runRuntimeShutdownSequence,runtimeShutdownWarning,settleWithin} from './runtime-shutdown-sequence.mjs';
 import {createFrameProfiler} from './frame-profiling.mjs';
 const params=new URLSearchParams(location.search), name=params.get('commander');
+const gameProfile=params.get('game')==='shockwave'?'shockwave':'zero-hour';
+const {assetLibrary}=await import(gameProfile==='shockwave'?'../shockwave/library.mjs':'./launcher-asset-manager.mjs');
 let ready=false,exiting=false,exitPromise,contextLossReported=false;
 let roomTimer,healthTimer,healthBusy=false,displayBusy=false,showPerformance=false;
 const canvas=document.querySelector('#viewport');
@@ -56,21 +57,21 @@ export async function boot(){
     if(!name||!/^[A-Za-z0-9 _-]{2,12}$/.test(name))throw Error('Choose a valid commander name before launching.');
     if(!crossOriginIsolated)throw Error('Threaded runtime requires HTTPS and COOP/COEP isolation headers.');
     window.__cncDiagLevel='lite';
-    await import('./bridge.js');
     await assetLibrary.archivesForLaunch();
+    await import('./bridge.js');
     // Archive-only installations may not include loose original cursor art.
     // Use the browser arrow instead of requesting upstream developer artifacts.
     window.__zhUseSystemCursor=!assetLibrary.summary().originalCursors;
     await checked('resumeBrowserAudioRuntime',{trigger:'standalone-launch'});
     report('Mounting your local archives…');
-    await checked('mountPreparedArchives',{path:'/assets/real-init',verifyEach:false,archives:assetLibrary.preparedArchives,videos:[],includeVideos:false});
+    const mounted=await checked('mountPreparedArchives',{path:'/assets/real-init',verifyEach:false,archives:assetLibrary.preparedArchives,mods:assetLibrary.preparedMods||[],videos:[],includeVideos:false});
     if(params.get('room')){
       report('Connecting game transport…');
       const config=await fetch('../network-config.json').then(r=>r.json());
       await checked('browserWebRtcEndpointConnect',{room:`zhweb-${params.get('room')}`,peerId:params.get('guest'),displayName:name,relayUrls:[new URL(config.signaling,location.href).href.replace(/^http/,'ws')],iceServers:config.iceServers||[],timeoutMs:30000});
     }
     report('Initializing the engine…');
-    const init=await checked('realEngineInit',{runDirectory:'/assets/real-init',shellMap:false,stepped:true,commanderName:name,bootWidth:display.width,bootHeight:display.height});
+    const init=await checked('realEngineInit',{runDirectory:'/assets/real-init',modDirectory:mounted.modDirectory||'',shellMap:false,stepped:true,commanderName:name,bootWidth:display.width,bootHeight:display.height});
     if(init.frontier?.initReturned!==true)throw Error('Engine initialization did not complete.');
     await checked('realEngineSetLoadStepping',{enabled:true,budgetMs:5});
     await checked('threadedStartLoop',{clientFps:60,logicFps:30});
@@ -208,7 +209,7 @@ window.addEventListener('message',async e=>{
         params.get('room')?settleWithin(checked('browserWebRtcEndpointState'),5000,'Game transport'):null,
       ]);
       if(frame?.ok===true)frameProfiler.observe(frame.value?.frame);
-      parent.postMessage({type:'zh-diagnostics',version:VERSION,runtime:PROFILES['zero-hour'].runtime,display,result,frame,transport,profiling:frameProfiler.snapshot(),userAgent:navigator.userAgent,isolation:crossOriginIsolated,graphics:params.get('shaderTier'),date:new Date().toISOString()},location.origin);
+      parent.postMessage({type:'zh-diagnostics',version:VERSION,runtime:PROFILES[gameProfile].runtime,display,result,frame,transport,profiling:frameProfiler.snapshot(),userAgent:navigator.userAgent,isolation:crossOriginIsolated,graphics:params.get('shaderTier'),date:new Date().toISOString()},location.origin);
     }
   }catch(error){parent.postMessage({type:'zh-error',message:error.message},location.origin)}
 });

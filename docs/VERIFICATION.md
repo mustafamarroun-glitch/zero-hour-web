@@ -1,6 +1,33 @@
 # Independent acceptance record
 
-Updated 2026-10-08. The source project's earlier results are context only; the following checks concern Zero Hour Web.
+Updated 2026-10-09. The source project's earlier results are context only; the following checks concern Zero Hour Web.
+
+## Version 3.1 ShockWave
+
+The supplied ShockWave 1.201 ZIP matched the developer's published size and MD5.
+Private extraction and preparation produced 17 compatible base archives plus
+11 active mod archives. No native installer was run or original installation
+edited. Per-archive SHA-256 values are pinned in the ShockWave profile.
+
+Windows Chrome on the NVIDIA RTX 3050 path passed actual folder import,
+replacement cancellation, responsive setup, mod-specific Special Weapons
+general objects and completed `Spec_ChinaBarracks` construction. Zero Hour's
+settings and an OPFS marker survived ShockWave launch and clean exit.
+The native save menu created a real save in the mod context. After clean exit
+and a fresh engine launch, IndexedDB restored the same file and size. Native
+loading of that save into a battlefield remains a separate check.
+
+Two local Chrome profiles passed full-file room compatibility, native map,
+faction/color/team controls, ready synchronization, real match loading,
+ShockWave objects on both peers, replicated mouse movement and 30 seconds
+without engine CRC mismatch. Room protocol tests reject another game, altered
+content and an incompatible runtime. This is preliminary local peer evidence;
+complete matches, separate devices, Mac and Internet gameplay remain pending.
+
+The original Zero Hour regression passed real import, restore, battlefield,
+mouse selection/movement, construction and clean exit/relaunch, with no page
+errors or missing requests. Yuri's pinned runtime/source checks pass; Yuri
+gameplay was not retested for this change.
 
 ## Version 3.0 replay recorder and profiling
 

@@ -16,7 +16,7 @@ export async function cleanArchiveStaging({profile='zero-hour'}={}){
   return result;
 }
 export async function extractGameArchive(file,{signal,onProgress=()=>{},profile='zero-hour'}={}){
-  if(!['zero-hour','yuri'].includes(profile))throw Error('Unknown archive profile.');
+  if(!['zero-hour','yuri','shockwave'].includes(profile))throw Error('Unknown archive profile.');
   if(active)throw Error('An archive is already being extracted.');
   if(!/\.(zip|rar)$/i.test(file.name))throw Error('Choose one .zip or .rar archive.');
   if(!navigator.storage?.getDirectory||!navigator.locks)throw Error('Archive import requires browser storage. Use a current desktop browser.');

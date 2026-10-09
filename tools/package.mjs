@@ -14,7 +14,7 @@ for(const name of ['VERSION_2_3.md','VERSION_3.md'])sourceEntries.push({name,fil
 const zip=await buildFileZip(sourceEntries);await writeFile('public/source/zero-hour-web-source.zip',new Uint8Array(await zip.arrayBuffer()));
 const output=resolve('release/site');await mkdir(output,{recursive:true});const manifest=[];
 async function publish(dir){for(const e of await readdir(dir,{withFileTypes:true})){const file=resolve(dir,e.name);if(e.isDirectory())await publish(file);else{
-const name=relative(resolve('public'),file).replaceAll('\\','/');if(/\.(big|bik|mix|sav|rep|exe|dll)$/i.test(name)||/winchester|san-andreas|network\.mjs/i.test(name))throw Error(`Excluded publication file ${name}`);
+const name=relative(resolve('public'),file).replaceAll('\\','/');if(/\.(big|gib|bik|mix|sav|rep|exe|dll)$/i.test(name)||/winchester|san-andreas|network\.mjs/i.test(name))throw Error(`Excluded publication file ${name}`);
  const bytes=await readFile(file);const destination=resolve(output,name);await mkdir(dirname(destination),{recursive:true});await copyFile(file,destination);manifest.push({name,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
 }}}
 await publish('public');await writeFile('release/manifest.json',JSON.stringify({generatedAt:new Date().toISOString(),files:manifest},null,2));

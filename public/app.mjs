@@ -6,9 +6,9 @@ import {extractGameArchive,cleanArchiveStaging} from './harness/archive-import.m
 import {VERSION,DEFAULTS,gameDefaults,loadPreferences,savePreferences,resolutionSize} from './preferences.mjs';
 import {diagnosticReport,recordError} from './diagnostics.mjs';
 const $=id=>document.getElementById(id), key='zhweb-identity-v1';
-const profile=PROFILES[document.documentElement.dataset.game]||PROFILES['zero-hour'],isYuri=profile.id==='yuri';
+const profile=PROFILES[document.documentElement.dataset.game]||PROFILES['zero-hour'],isYuri=profile.id==='yuri',isShockwave=profile.id==='shockwave';
 if(matchMedia('(pointer: coarse)').matches){$('hideToolbar').textContent='Hide';$('revealToolbar').textContent='Menu';}
-const {assetLibrary}=await import(isYuri?'./yuri/library.mjs':'./harness/launcher-asset-manager.mjs');
+const {assetLibrary}=await import(isYuri?'./yuri/library.mjs':isShockwave?'./shockwave/library.mjs':'./harness/launcher-asset-manager.mjs');
 let identity,installed=false,importing=false,importController,backupController,zipUrl,roomSocket,roomState,connecting=false,gameReady=false,inMatch=false,hideTimer,resizeTimer,confirmCallback;
 let preferences=loadPreferences(profile.id),releaseGameFiles,restoreTask=Promise.resolve();
 let libraryBusy=false,launching=false,exiting=false,exitTimer,forceExitTimer,diagnosticRequest;
@@ -19,7 +19,7 @@ function view(id){for(const name of ['entry','setup','lobby','room'])$(name).hid
 function setImportCopy(replacement){
   const replacing=replacement&&installed;
   $('setupTitle').textContent=replacing?'Replace your installed game.':'Prepare for deployment.';
-  $('setupDescription').textContent=replacing?`Choose a compatible ZIP, RAR, or ${isYuri?'game':'Data'} folder. Your current installation stays available until the replacement passes validation.`:`Import your compatible ${isYuri?'Red Alert 2 + Yuri’s Revenge':'Generals + Zero Hour'} files. They stay on this device.`;
+  $('setupDescription').textContent=replacing?`Choose a compatible ZIP, RAR, or ${isYuri||isShockwave?'game':'Data'} folder. Your current installation stays available until the replacement passes validation.`:`Import your compatible ${isYuri?'Red Alert 2 + Yuri’s Revenge':isShockwave?'Zero Hour base + ShockWave 1.201':'Generals + Zero Hour'} files. They stay on this device.`;
 }
 function showSetup(replacement=false){setImportCopy(replacement);view('setup');$('backToLibrary').hidden=!installed;if(replacement)setTimeout(()=>{if(!$('setup').hidden)$('chooseFolder').focus()},0)}
 function progress(p){const stage=p.phase==='scan'?'Validating files':p.phase==='prepare'?'Saving game files':p.phase||'Processing local files';$('installProgress').textContent=`${stage}${p.detail?`: ${p.detail}`:''}`;$('progress').hidden=false;const total=p.totalBytes||p.total;const completed=p.completedBytes||p.completed||0;if(total)$('progress').value=completed/total;else $('progress').removeAttribute('value')}
@@ -41,6 +41,9 @@ async function importFiles(files,archive=false){
   error('');$('cancelImport').hidden=false;for(const id of ['chooseFolder','chooseFiles','chooseArchive','backToLibrary'])$(id).disabled=true;
   try{
     await restoreTask;
+    // Recovery may have shown the old library while this import was waiting.
+    // Keep progress and cancellation visible throughout the replacement.
+    showSetup(installed);
     if(archive){extracted=await extractGameArchive(files[0],{signal:controller.signal,onProgress:progress,profile:profile.archiveProfile});files=extracted.files;}
     controller.signal.throwIfAborted();
     const scan=await assetLibrary.scan(files,{onProgress:progress,signal:controller.signal});
@@ -49,7 +52,7 @@ async function importFiles(files,archive=false){
     const result=await assetLibrary.prepare('install',progress,{signal:controller.signal});installed=true;$('cancelImport').disabled=true;
     progress({phase:'Finishing installation',detail:'Cleaning temporary extraction files'});
     await extracted?.dispose().catch(e=>recordError(`Temporary extraction cleanup: ${e.message}`));extracted=null;showLobby();if(result.warning)$('backupStatus').textContent=result.warning.message;
-  }catch(e){installed=!!assetLibrary.installedLibrary();setImportCopy(installed);$('backToLibrary').hidden=!installed;error(controller.signal.aborted?'Import cancelled. Your previous installation is preserved.':`${e.message}. Select a complete compatible ${isYuri?'Yuri game':'Data'} folder and retry.`);}
+  }catch(e){installed=!!assetLibrary.installedLibrary();setImportCopy(installed);$('backToLibrary').hidden=!installed;error(controller.signal.aborted?'Import cancelled. Your previous installation is preserved.':`${e.message}. Select a complete compatible ${isYuri?'Yuri game':isShockwave?'ShockWave game':'Data'} folder and retry.`);}
   finally{await extracted?.dispose().catch(()=>{});importing=false;importController=null;$('cancelImport').hidden=true;$('cancelImport').disabled=false;$('progress').hidden=true;for(const id of ['chooseFolder','chooseFiles','chooseArchive','backToLibrary'])$(id).disabled=false;$('folderInput').value=$('fileInput').value=$('archiveInput').value='';}
 }
 $('chooseFolder').onclick=()=> $('folderInput').click();$('chooseFiles').onclick=()=>$('fileInput').click();
@@ -77,7 +80,7 @@ async function installedFiles(){
 }
 $('exportLibrary').onclick=async()=>{
   backupController=new AbortController();$('exportLibrary').disabled=true;$('cancelBackup').hidden=false;$('saveZip').hidden=true;error('');
-  try{const entries=await installedFiles();const result=await (isYuri?buildFileZip:buildArchiveZip)(entries,{signal:backupController.signal,onProgress:p=>{$('backupStatus').textContent=p.detail||`Preparing ${p.name||'backup'}…`;}});if(zipUrl)URL.revokeObjectURL(zipUrl);zipUrl=URL.createObjectURL(result.blob||result);$('saveZip').href=zipUrl;$('saveZip').hidden=false;$('backupStatus').textContent=isYuri?'Backup ready. Save ZIP and import it directly into the website. Stored saves are kept separately.':'Backup ready. Save ZIP and import it directly into Version 2. Original cursor art and saved matches are not included in this game-archive backup.';}catch(e){error(e.message)}finally{$('exportLibrary').disabled=false;$('cancelBackup').hidden=true;}
+  try{const entries=await installedFiles();const result=await (isYuri?buildFileZip:buildArchiveZip)(entries,{signal:backupController.signal,onProgress:p=>{$('backupStatus').textContent=p.detail||`Preparing ${p.name||'backup'}…`;}});if(zipUrl)URL.revokeObjectURL(zipUrl);zipUrl=URL.createObjectURL(result.blob||result);$('saveZip').href=zipUrl;$('saveZip').hidden=false;$('backupStatus').textContent=isYuri||isShockwave?'Backup ready. Save ZIP and import it directly into the website. Stored saves are kept separately.':'Backup ready. Save ZIP and import it directly into Version 2. Original cursor art and saved matches are not included in this game-archive backup.';}catch(e){error(e.message)}finally{$('exportLibrary').disabled=false;$('cancelBackup').hidden=true;}
 };$('cancelBackup').onclick=()=>backupController?.abort();
 async function launch(room){
   error('');if(!installed||!$('gameView').hidden||libraryBusy||launching||importing||$('exportLibrary').disabled)return;
@@ -88,7 +91,7 @@ async function launch(room){
     $('librarySummary').textContent='Checking installed files before launch…';
     if(!await assetLibrary.verifyInstalledLibrary())throw Error(assetLibrary.lastValidationError||'Installed files are missing. Import a complete game again.');
     await assetLibrary.archivesForLaunch();
-    const url=new URL(isYuri?'./yuri/play.html':'./harness/game.html',import.meta.url);url.searchParams.set('commander',identity.name);url.searchParams.set('shaderTier',preferences.graphics);const size=currentResolution();url.searchParams.set('width',size.width);url.searchParams.set('height',size.height);
+    const url=new URL(isYuri?'./yuri/play.html':'./harness/game.html',import.meta.url);if(isShockwave)url.searchParams.set('game','shockwave');url.searchParams.set('commander',identity.name);url.searchParams.set('shaderTier',preferences.graphics);const size=currentResolution();url.searchParams.set('width',size.width);url.searchParams.set('height',size.height);
     if(isYuri){await assetLibrary.configureForLaunch(preferences,identity.name);releaseGameFiles=await assetLibrary.holdForGame();url.searchParams.set('settings',JSON.stringify(preferences));if(room)url.searchParams.set('session',room.relayCode);}
     if(room){url.searchParams.set('room',room.code);url.searchParams.set('guest',identity.guest);url.searchParams.set('host',room.players.find(p=>p.name===identity.name)?.host?'1':'0');}
     gameReady=false;inMatch=false;resetProfiling();$('gameName').textContent=identity.name;$('gameStatus').textContent='Restoring local files…';$('gameFrame').src=url.href;$('gameView').hidden=false;document.body.classList.add('playing');document.querySelector('header').inert=document.querySelector('main').inert=document.querySelector('footer').inert=true;setToolbar(true);$('gameFrame').focus();
@@ -115,7 +118,7 @@ async function roomConnect(action,code){
   error('');const config=await fetch(new URL('./network-config.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Room service is unavailable. Solo skirmish remains available.');return r.json()});
   if(!config.rooms||!config.signaling)throw Error('The multiplayer service is offline. Solo skirmish remains available.');
   const content=await fingerprint();const url=new URL(config.rooms,new URL('./',import.meta.url));if(url.protocol==='https:')url.protocol='wss:';else if(url.protocol==='http:')url.protocol='ws:';if(!['ws:','wss:'].includes(url.protocol))throw Error('The room service must use a WebSocket URL.');
-  roomSocket=new WebSocket(url);roomSocket.onopen=()=>roomSocket.send(JSON.stringify({action,code,name:identity.name,guest:identity.guest,content,runtime:isYuri?profile.runtime:config.runtime,game:profile.id}));
+  roomSocket=new WebSocket(url);roomSocket.onopen=()=>roomSocket.send(JSON.stringify({action,code,name:identity.name,guest:identity.guest,content,runtime:isYuri||isShockwave?profile.runtime:config.runtime,game:profile.id}));
   roomSocket.onmessage=e=>{const msg=JSON.parse(e.data);if(msg.error){error(msg.error);roomSocket.close();roomSocket=null;return;}roomState=msg;view('room');$('roomTitle').textContent=msg.code;$('roomStatus').textContent=`${msg.players.length}/2 commanders connected to the room service`;$('players').replaceChildren(...msg.players.map(p=>{const li=document.createElement('li');const name=document.createElement('strong');name.textContent=p.name;const state=document.createElement('span');state.textContent=p.host?'Host':'Guest';li.append(name,state);return li}));$('compatibility').textContent=msg.compatible?'Runtime and content fingerprints match.':'Waiting for a second compatible installation.';$('roomLaunch').disabled=!msg.compatible;};
   roomSocket.onerror=()=>error('Could not connect to the room service. Check its URL and restart the service.');roomSocket.onclose=()=>{if(roomState)$('roomStatus').textContent='Room connection closed. Leave and reconnect before starting another game.';else roomSocket=null;};
   }finally{connecting=false;$('createRoom').disabled=false;$('joinForm').querySelector('button').disabled=false;}

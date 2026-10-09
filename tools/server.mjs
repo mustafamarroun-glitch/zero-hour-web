@@ -58,7 +58,7 @@ roomWss.on('connection',socket=>{
   socket.on('message',raw=>{
     try{
       if(joined)throw Error('Already in a room. Leave before joining another.');
-      const msg=JSON.parse(raw);msg.game=msg.game||'zero-hour';const expectedRuntime={'zero-hour':'3ccaa0e9-compiled-combined-v6-rf1',yuri:'ra2-vm-a10ac989'}[msg.game];if(!/^[A-Za-z0-9 _-]{2,12}$/.test(msg.name)||!/^[a-f0-9-]{36}$/.test(msg.guest)||!/^[a-f0-9]{64}$/.test(msg.content)||!expectedRuntime||msg.runtime!==expectedRuntime)throw Error('Invalid commander identity or incompatible runtime.');
+      const msg=JSON.parse(raw);msg.game=msg.game||'zero-hour';const expectedRuntime={'zero-hour':'3ccaa0e9-compiled-combined-v6-rf1',yuri:'ra2-vm-a10ac989',shockwave:'3ccaa0e9-compiled-combined-v6-rf1-shockwave-1.201-v1'}[msg.game];if(!/^[A-Za-z0-9 _-]{2,12}$/.test(msg.name)||!/^[a-f0-9-]{36}$/.test(msg.guest)||!/^[a-f0-9]{64}$/.test(msg.content)||!expectedRuntime||msg.runtime!==expectedRuntime)throw Error('Invalid commander identity or incompatible runtime.');
       if(msg.action==='create'){
         if(rooms.size>=100)throw Error('Room service is full. Try again later.');
         let code;do{code=randomBytes(4).toString('hex').toUpperCase()}while(rooms.has(code));joined={code,game:msg.game,relayCode:msg.game==='yuri'?randomBytes(12).toString('hex'):undefined,players:[]};rooms.set(code,joined);

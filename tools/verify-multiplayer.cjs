@@ -1,20 +1,22 @@
 const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs/promises');const path=require('node:path');
 runBrowserTest(async()=>{
+ const shockwave=process.env.ZH_GAME==='shockwave';
  const software=process.env.ZH_RENDERER!=='hardware';
- const report={checks:[],errors:[],rendererRequested:software?'SwiftShader':'Default Windows Chrome hardware path',scope:'Two local Windows Chrome browser profiles on one PC; real archives and engine instances. Does not establish two computers or different networks.'};
+ const report={game:shockwave?'shockwave':'zero-hour',checks:[],errors:[],rendererRequested:software?'SwiftShader':'Default Windows Chrome hardware path',scope:'Two local Windows Chrome browser profiles on one PC; real archives and engine instances. Does not establish two computers or different networks.'};
  const contexts=[],clients=[];let timer;
  const wait=async(label,fn,predicate,timeout=120000)=>{const end=Date.now()+timeout;let v;while(Date.now()<end){v=await fn();if(predicate(v))return v;await new Promise(r=>setTimeout(r,500));}await fs.writeFile('.local/multiplayer-last-state.json',JSON.stringify(v,null,2));throw Error(label+' timed out');};
- const rpc=(client,command,payload={})=>client.game.evaluate(([c,p])=>window.CnCPort.rpc(c,p),[command,payload]);
+ const rpc=(client,command,payload={})=>client.game.evaluate(([c,p])=>Promise.race([window.CnCPort.rpc(c,p),new Promise((_,reject)=>setTimeout(()=>reject(Error(c+' RPC timeout')),30000))]),[command,payload]);
  const state=async client=>(await rpc(client,'realEngineLanState')).lan;
  try{
   timer=setInterval(()=>console.log('MULTIPLAYER',report.stage),20000);
-  for(const [profile,name]of [['acceptance-browser','FieldTest'],['guest-browser','FieldGuest']]){
+  for(const [profile,name]of [[shockwave?'shockwave-host':'acceptance-browser','FieldTest'],[shockwave?'shockwave-guest':'guest-browser','FieldGuest']]){
    report.stage=`Preparing ${name}`;
-   const context=await launchTestContext(chromium,path.resolve('.local/'+profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]},{reuseProfile:profile==='acceptance-browser'?(process.env.ZH_HOST_PROFILE||null):(process.env.ZH_GUEST_PROFILE||null)});contexts.push(context);const page=context.pages()[0]||await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log(name,m.text().slice(0,180))});await page.goto(process.env.ZH_SITE_URL||'http://localhost:8093/');await page.waitForTimeout(1000);
+   const context=await launchTestContext(chromium,path.resolve('.local/'+profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]},{reuseProfile:profile.endsWith('host')||profile==='acceptance-browser'?(process.env.ZH_HOST_PROFILE||null):(process.env.ZH_GUEST_PROFILE||null)});contexts.push(context);const page=context.pages()[0]||await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log(name,m.text().slice(0,180))});await page.goto(process.env.ZH_SITE_URL||(shockwave?'http://localhost:8093/shockwave/':'http://localhost:8093/'));await page.waitForTimeout(1000);
+   if(shockwave&&context.testProfile.owned===false)await page.locator('#lobby').waitFor({state:'visible',timeout:180000});
    if(await page.locator('#entry').isVisible()){await page.locator('#name').fill(name);await page.locator('#nameForm button').click();}
-   if(await page.locator('#setup').isVisible()){await page.locator('#folderInput').setInputFiles('C:\\Program Files (x86)\\DODI-Repacks\\Generals Zero Hour\\Data');await page.locator('#lobby').waitFor({state:'visible',timeout:240000});}
-   clients.push({page,name});
+   if(await page.locator('#setup').isVisible()){await page.locator('#folderInput').setInputFiles(shockwave?path.resolve('.local/shockwave/player-files'):'C:\\Program Files (x86)\\DODI-Repacks\\Generals Zero Hour\\Data');await page.locator('#lobby').waitFor({state:'visible',timeout:600000});}
+   clients.push({page,name:(await page.locator('#commander').textContent()).trim()});
   }
   const [host,guest]=clients;report.stage='Create real website room';await host.page.locator('#createRoom').click();await host.page.locator('#room').waitFor({state:'visible',timeout:180000});report.code=await host.page.locator('#roomTitle').textContent();
   await guest.page.locator('#roomCode').fill(report.code);await guest.page.locator('#joinForm button').click();await guest.page.locator('#room').waitFor({state:'visible',timeout:180000});await host.page.locator('#roomLaunch').waitFor({state:'visible'});await wait('Compatible room',()=>host.page.locator('#roomLaunch').isEnabled(),v=>v===true,30000);report.checks.push('Two actual installations pass full content SHA-256 and version checks in a private room');
@@ -22,14 +24,14 @@ runBrowserTest(async()=>{
   for(const client of clients){await client.page.locator('#roomLaunch').click();await client.page.waitForFunction(()=>{const w=document.getElementById('gameFrame').contentWindow;return !!w?.CnCPort?.rpc&&w.document.getElementById('loading')?.hidden===true},null,{timeout:180000});client.game=client.page.frames().find(f=>f.url().includes('game.html'));await client.page.mouse.move(700,450);await rpc(client,'postMessage',{message:0x200,lParam:(320<<16)|400,point:{x:400,y:320}});}
   report.stage='Native peer discovery and join';
   const states=await wait('Native two-player lobby',()=>Promise.all(clients.map(state)),states=>states.every(s=>s.game?.numPlayers===2),120000);report.lobbies=states;
-  const names=states[0].game.slots.filter(s=>s.human).map(s=>s.name).sort();if(JSON.stringify(names)!==JSON.stringify(['FieldGuest','FieldTest']))throw Error('Website names do not match native human player list: '+JSON.stringify(names));report.checks.push('Distinct website identities are present in the actual native two-player game');
+  const names=states[0].game.slots.filter(s=>s.human).map(s=>s.name).sort();if(JSON.stringify(names)!==JSON.stringify(clients.map(c=>c.name).sort()))throw Error('Website names do not match native human player list: '+JSON.stringify(names));report.checks.push('Distinct website identities are present in the actual native two-player game');
   report.transport=await Promise.all(clients.map(c=>rpc(c,'browserWebRtcEndpointState')));report.maps=await rpc(host,'mapCacheProbe');await fs.writeFile('.local/multiplayer-maps.json',JSON.stringify(report.maps,null,2));
-  const mapKey=report.maps.probe.officialMultiplayerMaps.find(m=>m.key.includes('alpine assault')).key;
+  const mapKey=report.maps.probe.officialMultiplayerMaps.find(m=>shockwave?/alpine/i.test(m.key):m.key.includes('alpine assault')).key;
   await host.page.locator('#gameMap').selectOption(mapKey);
   await wait('Selected map synchronized',()=>Promise.all(clients.map(state)),s=>s.every(s=>s.game.map.toLowerCase()===mapKey.toLowerCase()),30000);
   report.ui=await Promise.all(clients.map(c=>rpc(c,'agentUiSnapshot')));
   const selectSetting=async(c,kind,slot,choose)=>{const control=c.page.locator(`select[data-engine-name="LanGameOptionsMenu.wnd:ComboBox${kind}${slot}"]`);await control.waitFor({state:'visible',timeout:45000});const options=await control.locator('option').evaluateAll(options=>options.map(o=>({value:o.value,text:o.textContent})));const option=choose(options);if(!option)throw Error('No native option for '+kind+JSON.stringify(options));await control.selectOption(option.value);return option;};
-  report.factionOptions=await selectSetting(host,'PlayerTemplate',0,o=>o.find(o=>/^GLA$/i.test(o.text)));
+  report.factionOptions=await selectSetting(host,'PlayerTemplate',0,o=>o.find(o=>shockwave?/Leang|Special Weapons/i.test(o.text):/^GLA$/i.test(o.text)));
   await selectSetting(guest,'PlayerTemplate',1,o=>o.find(o=>/^USA$/i.test(o.text)));
   await selectSetting(host,'Color',0,o=>o[1]);await selectSetting(guest,'Color',1,o=>o[2]);
   await selectSetting(host,'Team',0,o=>o[1]);await selectSetting(guest,'Team',1,o=>o[2]);
@@ -49,6 +51,7 @@ runBrowserTest(async()=>{
   report.graphics=await Promise.all(clients.map(c=>rpc(c,'threadedStatus')));
   await wait('Active simulation and settled viewport',()=>Promise.all(clients.map(c=>rpc(c,'realEngineFrame',{frames:1}))),s=>s.every(s=>s.frame?.clientState?.gameplay?.logicFrame>10&&s.frame?.clientState?.controlBarWindows?.parent?.y<720),120000);
   report.stage='Replicated unit movement';
+  if(shockwave){for(const c of clients){const draws=await rpc(c,'queryDrawables');if(!draws.drawables.allDrawables.some(d=>d.name.startsWith('Spec_')))throw Error('ShockWave-specific general objects missing from peer');}report.checks.push('Mod-specific Special Weapons general objects exist in both real peer engines');}
   const draws=(await rpc(host,'queryDrawables')).drawables;const worker=draws.drawables.find(o=>o.localOwned&&o.kindOf?.dozer);
   if(!worker)throw Error('Host builder absent from real multiplayer');
   const world=(await rpc(host,'agentWorldSnapshot')).result;const builder=world.objects.find(o=>o.owner===world.localPlayerIndex&&/Worker|Dozer/.test(o.template));
@@ -67,5 +70,5 @@ runBrowserTest(async()=>{
   for(const [i,c]of clients.entries()){const shot=await rpc(c,'screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile(`output/playwright/multiplayer-${i?'guest':'host'}.png`,Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));}
   report.status='passed preliminary local startup; full match and separate networks pending';
  }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;report.failureStates=await Promise.all(clients.filter(c=>c.game).map(async c=>({name:c.name,url:c.game.url(),siteStatus:await c.page.locator('#gameStatus').textContent(),engineStatus:await c.game.locator('#status').textContent(),lan:await state(c),transport:await rpc(c,'browserWebRtcEndpointState'),frame:await rpc(c,'realEngineFrame',{frames:1})})));for(const c of clients.filter(c=>c.game)){const shot=await rpc(c,'screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile(`output/playwright/multiplayer-${c.name}.png`,Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));}}
- finally{clearInterval(timer);await fs.writeFile('.local/multiplayer-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors},null,2));for(const c of contexts)await c.close();}
+ finally{clearInterval(timer);await fs.writeFile('.local/'+(shockwave?'shockwave/':'')+'multiplayer-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors},null,2));for(const c of contexts)await c.close();}
 });

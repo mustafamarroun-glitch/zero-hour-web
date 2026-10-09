@@ -1,0 +1,70 @@
+const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
+const {chromium}=require('playwright');
+const fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict');
+runBrowserTest(async()=>{
+ const report={checks:[],errors:[],scope:'Fresh Windows Chrome profile, actual player-owned base and ShockWave 1.201 archives. Separate devices and networks are not covered.'};
+ const context=await launchTestContext(chromium,'shockwave',{channel:'chrome',headless:true,viewport:{width:1440,height:900}}, {retain:true});
+ report.profile=context.testProfile.path;
+ const page=context.pages()[0]||await context.newPage();let game;
+ page.on('pageerror',error=>report.errors.push(error.message));
+ page.on('console',m=>{if(m.type()==='error')console.log('BROWSER',m.text().slice(0,200))});
+ const timer=setInterval(()=>console.log('SHOCKWAVE',report.stage),20000);
+ const rpc=(c,p={})=>game.evaluate(([c,p])=>Promise.race([window.CnCPort.rpc(c,p),new Promise((_,reject)=>setTimeout(()=>reject(Error(c+' RPC timeout')),20000))]),[c,p]);
+ const wait=async(label,fn,test,timeout=180000)=>{let state;const end=Date.now()+timeout;while(Date.now()<end){state=await fn();if(test(state))return state;await page.waitForTimeout(500)}await fs.writeFile('.local/shockwave/last-state.json',JSON.stringify(state,null,2));throw Error(label+' timed out')};
+ try{
+  await fs.mkdir('output/playwright',{recursive:true});
+  report.stage='Isolation and launcher';await page.goto('http://localhost:8093/');await page.waitForFunction(()=>typeof document.getElementById('nameForm').onsubmit==='function');
+  await page.evaluate(async()=>{localStorage.setItem('zhweb-settings-v2',JSON.stringify({dark:false,resolution:'1920x1080',music:17}));localStorage.setItem('shock-isolation-marker','keep');const file=await(await navigator.storage.getDirectory()).getFileHandle('shock-isolation-marker',{create:true});const writer=await file.createWritable();await writer.write('Zero Hour stays intact');await writer.close()});
+  await page.goto('http://localhost:8093/shockwave/');await page.waitForFunction(()=>typeof document.getElementById('nameForm').onsubmit==='function');
+  if(process.env.ZH_PROFILE)await page.locator('#lobby').waitFor({state:'visible',timeout:180000});
+  assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('shock-isolation-marker')),null);
+  assert.equal(await page.locator('nav a[aria-current="page"]').textContent(),'ShockWave');
+  if(await page.locator('#entry').isVisible()){await page.locator('#name').fill('ShockTest');await page.locator('#nameForm button').click();}
+  await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:'output/playwright/shockwave-setup-mobile.png'});await page.setViewportSize({width:1440,height:900});await page.screenshot({path:'output/playwright/shockwave-setup.png'});
+  report.checks.push('Third game navigation and responsive setup; Zero Hour settings and storage are isolated');
+  report.stage='Actual folder import';if(await page.locator('#setup').isVisible()){await page.locator('#folderInput').setInputFiles(path.resolve('.local/shockwave/player-files'));await page.locator('#lobby').waitFor({state:'visible',timeout:600000});}
+  await page.locator('#lobby').waitFor({state:'visible',timeout:180000});report.installation=await page.evaluate(()=>window.ShockwaveAssetLibrary.installedLibrary());assert.equal(report.installation.archives.length,28);assert.equal(report.installation.shockwave.version,'1.201');
+  report.checks.push('17 base + 11 checksum-pinned mod archives installed atomically');
+  await page.screenshot({path:'output/playwright/shockwave-lobby.png'});
+  report.stage='Cancelled replacement';await page.locator('#libraryDetails summary').click();await page.locator('#replaceLibrary').click();await page.locator('#folderInput').setInputFiles(path.resolve('.local/shockwave/player-files'));await page.locator('#cancelImport').waitFor({state:'visible'});await page.locator('#cancelImport').click();await wait('Cancel import',()=>page.locator('#chooseFolder').isEnabled(),Boolean);assert.equal(await page.evaluate(()=>window.ShockwaveAssetLibrary.installedLibrary()?.root),report.installation.root);
+  await page.locator('#backToLibrary').click();await page.locator('#lobby').waitFor({state:'visible',timeout:180000});report.checks.push('Cancellation keeps the previous complete installation');
+  report.stage='Actual ShockWave engine boot';await page.locator('#solo').click();
+  await page.waitForFunction(()=>document.getElementById('gameFrame').contentWindow?.document.getElementById('loading')?.hidden===true,null,{timeout:240000});game=page.frames().find(f=>f.url().includes('/harness/game.html'));
+  await wait('Skirmish options',()=>rpc('queryWindowByName',{name:'SkirmishGameOptionsMenu.wnd:ButtonStart'}),v=>v.result?.clickable);
+  report.template=await rpc('realEngineSetSkirmishLocalTemplate',{templateName:'FactionChinaSpecialWeaponsGeneral'});assert.notEqual(report.template.ok,false);
+  report.maps=await rpc('mapCacheProbe');const map=report.maps.probe.officialMultiplayerMaps.find(m=>/alpine/i.test(m.key));assert.ok(map);report.map=await rpc('realEngineSetSkirmishMap',{mapName:map.key});assert.notEqual(report.map.ok,false);await rpc('clickWindowByName',{name:'SkirmishGameOptionsMenu.wnd:ButtonStart'});
+  report.stage='Real mod battlefield';report.battlefield=await wait('Battlefield',()=>rpc('realEngineFrame',{frames:1}),v=>v.frame?.clientState?.gameplay?.inGame&&!v.frame.clientState.gameplay.loadingMap&&v.frame.clientState.gameplay.objectCount>0);
+  report.drawables=await rpc('queryDrawables');assert.ok(report.drawables.drawables.allDrawables.some(d=>d.localOwned&&d.name?.startsWith('Spec_')),'Special Weapons general must have actual ShockWave objects');
+  report.renderer=(await rpc('threadedStatus')).status?.graphics?.renderer;
+  const shot=await rpc('screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile('output/playwright/shockwave-battlefield.png',Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));
+  report.checks.push('Real ShockWave Special Weapons general battlefield with mod-specific objects');
+  report.stage='Mod construction and simulation';
+  const world=(await rpc('agentWorldSnapshot',{includeCapabilities:true})).result;
+  const builder=world.objects.find(o=>o.owner===world.localPlayerIndex&&world.templates[o.template]?.categories?.includes('builder'));
+  const command=(world.commandSets[world.objectCapabilities[builder.id].commandSet]||[]).find(c=>c.product?.categories?.includes('barracks'));
+  assert.ok(command,'ShockWave builder has a barracks construction command');
+  report.buildCommand=await rpc('agentGameCommand',{sourceId:builder.id,command:command.name,hasPosition:true,x:(builder.position.x??builder.position[0])-160,y:(builder.position.y??builder.position[1])-130,angle:0});assert.notEqual(report.buildCommand.ok,false);
+  const built=await wait('ShockWave barracks construction',()=>rpc('agentWorldSnapshot'),v=>v.result?.objects.some(o=>o.template===command.product.template&&!o.status?.includes('underConstruction')&&(o.construction===-1||o.construction>=100)),300000);
+  report.completedBuilding=built.result.objects.find(o=>o.template===command.product.template);report.players=built.result.players;
+  assert.ok(report.completedBuilding.template.startsWith('Spec_'));
+  report.checks.push('Special Weapons general completes its actual mod barracks through the engine construction command');
+  report.stage='Native mod save creation';await game.locator('#viewport').press('Escape');
+  await wait('Native quit menu',()=>rpc('queryWindowByName',{name:'QuitMenu.wnd:ButtonSaveLoad'}),v=>v.result?.clickable);
+  await rpc('clickWindowByName',{name:'QuitMenu.wnd:ButtonSaveLoad'});
+  await wait('Native save menu',()=>rpc('queryWindowByName',{name:'PopupSaveLoad.wnd:ButtonSave'}),v=>v.result?.clickable);
+  await rpc('clickWindowByName',{name:'PopupSaveLoad.wnd:ButtonSave'});
+  const entry=await wait('Save description',()=>rpc('queryWindowByName',{name:'PopupSaveLoad.wnd:EntryDesc'}),v=>v.result?.clickable);
+  await rpc('agentUiSetText',{windowId:entry.result.id,name:entry.result.name,text:'ShockAcceptance'});await rpc('clickWindowByName',{name:'PopupSaveLoad.wnd:ButtonSaveDescConfirm'});
+  report.saves=await wait('Committed save file',()=>rpc('listSaves'),v=>v.files?.some(f=>f.size>1000));assert.equal(report.saves.mounted,true);assert.match(report.saves.dir,/ModData\/[a-f0-9]{64}\/Home/);
+  report.checks.push('Native save created inside the separate ShockWave mod context');
+  report.stage='Clean exit and Zero Hour preservation';await game.locator('#viewport').press('F8');if(!await page.locator('#exitGame').isVisible())await page.locator('#revealToolbar').click();await page.locator('#exitGame').click();if(await page.locator('#confirmAction').isVisible())await page.locator('#confirmProceed').click();await page.locator('#gameView').waitFor({state:'hidden',timeout:60000});
+  await page.goto('http://localhost:8093/');await page.waitForFunction(()=>typeof document.getElementById('nameForm').onsubmit==='function');assert.equal(await page.locator('html').getAttribute('data-theme'),'light');assert.equal(await page.evaluate(()=>localStorage.getItem('shock-isolation-marker')),'keep');assert.equal(await page.evaluate(async()=>await(await(await navigator.storage.getDirectory()).getFileHandle('shock-isolation-marker')).getFile().then(f=>f.text())),'Zero Hour stays intact');
+  report.checks.push('Clean engine exit preserves original Zero Hour settings and OPFS file');
+  report.stage='Mod save persistence after relaunch';await page.goto('http://localhost:8093/shockwave/');await page.locator('#lobby').waitFor({state:'visible',timeout:180000});await page.locator('#solo').click();await page.waitForFunction(()=>document.getElementById('gameFrame').contentWindow?.document.getElementById('loading')?.hidden===true,null,{timeout:240000});game=page.frames().find(f=>f.url().includes('/harness/game.html'));
+  report.restoredSaves=await rpc('listSaves');assert.deepEqual(report.restoredSaves.files,report.saves.files);assert.equal(report.restoredSaves.dir,report.saves.dir);assert.equal(report.restoredSaves.mounted,true);
+  report.checks.push('Actual ShockWave save file restored through IndexedDB after clean exit and a fresh engine');
+  assert.equal(report.errors.length,0);report.status='passed';
+ }catch(e){report.status='failed';report.failure=e.stack;process.exitCode=1;report.siteError=await page.locator('#error').textContent().catch(()=>null);report.gameStatus=await page.locator('#gameStatus').textContent().catch(()=>null);report.engineUi=game?await rpc('agentUiSnapshot').catch(e=>({error:e.message})):null;await page.screenshot({path:'output/playwright/shockwave-failure.png'}).catch(()=>{});}
+ finally{clearInterval(timer);await fs.writeFile('.local/shockwave/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors,siteError:report.siteError,gameStatus:report.gameStatus,profile:report.profile},null,2));await context.close()}
+});
