@@ -2,8 +2,8 @@ import '../harness/storage-scope.js';
 import { assetLibrary as base } from '../harness/launcher-asset-manager.mjs';
 import { createModContext, saveModLibrary, saveActiveModContext, normalizeInstalledMod, activeModMountPlan } from '../harness/mod-context.mjs';
 import { modContentHash } from '../harness/mod-package-format.mjs';
-import { createOriginalCursorManifest, ORIGINAL_CURSOR_PACK_NAME } from '../harness/original-cursor-assets.mjs';
-import {buildCursorPack} from './cursor-pack.mjs';
+import { createOriginalCursorManifest, parseBigEntries, ORIGINAL_CURSOR_PACK_NAME } from '../harness/original-cursor-assets.mjs';
+import {buildCursorPack,cursorFileName} from './cursor-pack.mjs';
 import { SHOCKWAVE_ARCHIVES, SHOCKWAVE_VERSION, selectShockwaveFiles, validateShockwaveFile } from './package.mjs';
 
 const KEY = 'zeroh-installed-library.combined.v6';
@@ -36,7 +36,7 @@ const overrides = {
   },
   async scan(files, options = {}) {
     sources = null;cursorUpdate=null;
-    if(files.length&&files.every(file=>/\.ani$/i.test(file.name))){
+    if(files.length&&files.every(file=>/\.ani$/i.test(cursorFileName(file)))){
       if(!modFrom(base.installedLibrary()))throw Error('Install ShockWave before adding cursor artwork.');
       options.onProgress?.({phase:'Checking cursor artwork'});
       const pack=await buildCursorPack(files,options);
@@ -46,6 +46,10 @@ const overrides = {
       return {ok:true,cursorOnly:true,cursorCount:pack.entryCount};
     }
     const selected = selectShockwaveFiles(files);
+    // Cursors are required for a complete new import, not silently optional.
+    const cursors=files.filter(file=>/\.ani$/i.test(cursorFileName(file)));
+    const pack=await buildCursorPack(cursors,options);
+    const cursorLibrary=createOriginalCursorManifest(pack.bytes);cursorLibrary.dispose();
     for (const { file, spec } of selected) {
       options.signal?.throwIfAborted();
       options.onProgress?.({ phase: 'Validating ShockWave', detail: spec.name });
@@ -152,7 +156,15 @@ const overrides = {
     const installation = base.installedLibrary(), mod = modFrom(installation);
     if (!mod) throw Error('ShockWave is not installed.');
     const files = [...installation.archives.map(item => ({ name: item.name, path: item.opfsPath })), ...mod.archives.map(item => ({ name: item.name, path: item.opfsPath }))];
-    return Promise.all(files.map(async item => ({ name: item.name, file: await fileAt(item.path) })));
+    const entries=await Promise.all(files.map(async item => ({ name: item.name, file: await fileAt(item.path) })));
+    if(installation.cursorAsset){
+      const pack=await(await fileAt(installation.cursorAsset.opfsPath)).arrayBuffer();
+      for(const {path,bytes} of parseBigEntries(pack).values()){
+        const name=path.replaceAll('\\','/');
+        if(/^Data\/Cursors\/[a-z0-9_ -]+\.ani$/i.test(name))entries.push({name,file:new Blob([bytes])});
+      }
+    }
+    return entries;
   },
   async removeInstalledLibrary() {
     const mod = modFrom(base.installedLibrary());

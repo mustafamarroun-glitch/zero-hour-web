@@ -70,7 +70,7 @@ try {
         $env:HOST = '127.0.0.1'
         $env:PORT = '8096'
         $env:SITE_ROOT = Join-Path $projectRoot 'public'
-        $env:ALLOWED_ORIGINS = 'https://mustafamarroun-glitch.github.io,http://localhost:8096,http://127.0.0.1:8096'
+        $env:ALLOWED_ORIGINS = 'https://mustafamarroun-glitch.github.io,http://localhost:8096,http://127.0.0.1:8096,http://localhost:8093,http://127.0.0.1:8093'
         $env:ROOMS_URL = '/rooms'
         $env:SIGNALING_URL = '/nostr'
         $server = Start-Process -FilePath $nodePath -ArgumentList 'tools/server.mjs' -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $sessionDirectory 'server.log') -RedirectStandardError (Join-Path $sessionDirectory 'server-error.log') -PassThru

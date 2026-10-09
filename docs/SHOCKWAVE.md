@@ -51,7 +51,10 @@ Browser-wide clearing and origin quota still affect all games at that origin.
 Replacement stages base and mod files, then commits one combined manifest.
 Cancellation or validation failure preserves the old installation. Removal
 targets this game's archives and preserves settings and committed saves. ZIP
-backups contain base and mod archives; saves and cursor artwork are separate.
+backups contain base and mod archives plus imported cursor artwork. Saves and
+replays are separate. Version 3.1.2 rejects new imports missing any of the 52
+original cursor files, before replacing the installed game. Older archive-only
+backups need the original `Data/Cursors` folder added before reimport.
 
 ### Original mouse cursor (3.1.1)
 
@@ -63,6 +66,27 @@ Select all `.ani` files in the prepared folder's `Data/Cursors` directory. This
 small import validates and packs the animations in place, preserving the 28
 archive paths, settings, mod save context and multiplayer content identity.
 No full game reimport is required. Cursor artwork stays browser-local.
+
+### Audited compressed package (3.1.2)
+
+`tools/package-shockwave.py` audits a prepared folder against its original base
+and mod sources. It checks every BIG entry's bounds and names, all source-copy
+SHA-256 values and official mod hashes, then creates a standard Deflate level 9
+ZIP with exactly 17 base archives, 11 mod archives and 52 original cursors.
+Every compressed entry is fully restored and verified by CRC and SHA-256.
+The package excludes native programs, other-language resources, cinematics,
+optional classic icons, metadata, saves and replays without changing originals.
+Do not trim inside the pinned mod archives: units and shared resources may
+depend on them even when campaign and Challenge acceptance is outside scope.
+
+```powershell
+python tools/package-shockwave.py --folder ".local\shockwave\player-files" --base "C:\path\to\Zero Hour\Data" --mod ".local\shockwave\extracted" --output ".local\packaging\shockwave-web-new"
+```
+
+The private output includes a ZIP, checksum, exact audit inventory and player
+instructions. The ZIP imports through **Choose ZIP or RAR**, without extracting
+or running a Windows installer. `ZH_ARCHIVE=<ZIP path>` selects this path in
+`tools/verify-shockwave.cjs` for a fresh installation and actual gameplay audit.
 
 Rooms use ID `shockwave`, runtime
 `3ccaa0e9-compiled-combined-v6-rf1-shockwave-1.201-v1`, and a content fingerprint
@@ -82,6 +106,11 @@ or Internet gameplay. Reports remain in `.local/`.
 
 Run `node tools/check.mjs` and `node tools/package.mjs` before release. Publication
 is separate from the local build and requires a release request.
+
+`node tools/verify-shockwave-service.mjs` checks that the configured public WSS
+room service accepts ShockWave and a matching peer, and that signaling opens.
+The renewed temporary tunnel depends on the host PC staying awake. Service
+protocol success does not establish completed cross-device Internet gameplay.
 
 `ZH_PROFILE=<retained managed profile> node tools/verify-shockwave-cursors.cjs`
 checks invalid artwork rejection, an in-place 52-file import, native save

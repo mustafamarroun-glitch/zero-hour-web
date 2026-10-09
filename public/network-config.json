@@ -1,8 +1,8 @@
 {
   "temporaryService": true,
   "runtime": "3ccaa0e9-compiled-combined-v6-rf1",
-  "rooms": "wss://tax-highlights-antivirus-flexibility.trycloudflare.com/rooms",
+  "rooms": "wss://commissions-deals-mainstream-dawn.trycloudflare.com/rooms",
   "iceServers": [],
-  "signaling": "wss://tax-highlights-antivirus-flexibility.trycloudflare.com/nostr",
-  "yuriRelay": "wss://tax-highlights-antivirus-flexibility.trycloudflare.com"
+  "signaling": "wss://commissions-deals-mainstream-dawn.trycloudflare.com/nostr",
+  "yuriRelay": "wss://commissions-deals-mainstream-dawn.trycloudflare.com"
 }

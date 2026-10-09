@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 runBrowserTest(async()=>{
  const results=[];
- for(const routePath of ['yuri/','']){
+ for(const routePath of ['yuri/','shockwave/','']){
   const ctx=await launchTestContext(chromium,'static-startup',{channel:'chrome',headless:true}),events=[];
   try{
    await ctx.exposeFunction('recordStartupState',value=>events.push(value));
@@ -25,5 +25,5 @@ runBrowserTest(async()=>{
    results.push({routePath,events,status:'passed'});
   }finally{await ctx.close()}
  }
- await fs.writeFile('.local/static-startup-verification.json',JSON.stringify(results,null,2));console.log('Passed: both launchers defer forms until the static-host isolation reload completes and preserve the submitted commander.');
+ await fs.writeFile('.local/static-startup-verification.json',JSON.stringify(results,null,2));console.log('Passed: all three launchers defer forms until the static-host isolation reload completes and preserve the submitted commander.');
 });

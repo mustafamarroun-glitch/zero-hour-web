@@ -16,6 +16,15 @@ Free development option: Cloudflare Quick Tunnel can expose this project's local
 
 ## Release gates
 
+ShockWave 3.1.2 uses the shared service and its own game/runtime identity.
+The expired October 4 tunnel was replaced locally on October 9; the staged
+configuration points to `commissions-deals-mainstream-dawn.trycloudflare.com`.
+Public ShockWave create/join and signaling checks passed. Publication is still
+separate. The tunnel is temporary and requires this PC to stay awake; no stable
+multiplayer backend or separate-network completed match has been established.
+The compressed player-owned game ZIP is separate from the static website and
+is not included in `release/site` or Git history.
+
 1. `npm run check`; ensure engine/source hashes and no retail/executable files in the package.
 2. `npm run package`; inspect the source ZIP and publication manifest.
 3. Commit only this project's source and allowlisted runtime; create a new repository. Do not reuse the old repository history or remote.
@@ -24,4 +33,10 @@ Free development option: Cloudflare Quick Tunnel can expose this project's local
 
 The separate public repository is https://github.com/mustafamarroun-glitch/zero-hour-web. Its workflow checks and packages the allowlisted site before publishing through GitHub Pages. An existing Git Credential Manager account was verified and is used without storing tokens in this project. No paid service has been provisioned.
 
-The older temporary service on localhost:8095 remains untouched. The shared Yuri preview service uses localhost:8096 and its own tracked session under `.local/preview-server`; `Start Zero Hour Multiplayer.cmd` starts/checks it. The current public configuration uses `tax-highlights-antivirus-flexibility.trycloudflare.com`. Synthetic Yuri relay discovery, bidirectional forwarding and session separation passed through that WSS service with the GitHub website origin. Previous public Zero Hour room/signaling checks are separate evidence. Full engine gameplay on different networks remains a separate gate. The temporary endpoint works only while this PC, service and tunnel remain running; a newly created tunnel requires republishing its configuration.
+The older temporary service on localhost:8095 remains untouched. The shared Zero Hour, ShockWave and Yuri preview service uses localhost:8096 and its own tracked session under `.local/preview-server`; `Start Zero Hour Multiplayer.cmd` starts/checks it. The current staged configuration uses `commissions-deals-mainstream-dawn.trycloudflare.com`. Earlier Yuri relay discovery, bidirectional forwarding and session separation are separate evidence from the new ShockWave service checks. Full engine gameplay on different networks remains a separate gate. The temporary endpoint works only while this PC, service and tunnel remain running; a newly created tunnel requires republishing its configuration.
+
+After `npm run package`, `python tools/package-site-zip.py` creates a compressed
+upload copy under `output/releases/v<version>/`. It verifies every entry against
+the site manifest and fully reads the ZIP to check CRC and restored SHA-256.
+Extract this site's contents into the host's publication root. The private
+ShockWave game ZIP is a separate player package, imported through the website.

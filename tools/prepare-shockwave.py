@@ -39,6 +39,9 @@ def prepare(base, mod, output):
         raise ValueError('Output must be a separate new folder.')
     if output.exists():
         raise ValueError('Output already exists. Choose a new folder; existing files are never overwritten.')
+    cursor_sources = sorted((base / 'Data/Cursors').glob('*.ani'))
+    if len(cursor_sources) != 52 or not {'sccpointer.ani', 'sccattack.ani'}.issubset({p.name.lower() for p in cursor_sources}):
+        raise ValueError('The browser profile requires all 52 original ANI cursors. No output was created.')
     spec = json.loads((ROOT / 'public/shockwave/manifest.json').read_text())
     files = [(base / name, name, None) for name in BASE]
     for archive in spec['archives']:
@@ -65,8 +68,9 @@ def prepare(base, mod, output):
         if digest(output / name) != record['sha256']:
             raise ValueError(f'Copy verification failed: {name}')
     cursor_count = copy_cursors(base, output)
-    (output / 'browser-package.json').write_text(json.dumps({'game': 'shockwave', 'version': '1.201', 'files': inventory, 'cursorFiles': cursor_count}, indent=2))
-    print(json.dumps({'folder': str(output), 'archives': len(files), 'cursorFiles': cursor_count, 'bytes': sum(i['bytes'] for i in inventory), 'verified': True}))
+    cursor_inventory = [{'name': 'Data/Cursors/' + p.name, 'bytes': p.stat().st_size, 'sha256': digest(p)} for p in cursor_sources]
+    (output / 'browser-package.json').write_text(json.dumps({'game': 'shockwave', 'version': '1.201', 'files': inventory, 'cursorFiles': cursor_count, 'cursors': cursor_inventory}, indent=2))
+    print(json.dumps({'folder': str(output), 'archives': len(files), 'cursorFiles': cursor_count, 'bytes': sum(i['bytes'] for i in inventory + cursor_inventory), 'verified': True}))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)

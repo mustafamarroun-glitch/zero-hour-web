@@ -2,12 +2,14 @@ const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict');
 runBrowserTest(async()=>{
- const report={checks:[],errors:[],scope:'Fresh Windows Chrome profile, actual player-owned base and ShockWave 1.201 archives. Separate devices and networks are not covered.'};
+ const report={checks:[],errors:[],missingRequests:[],consoleErrors:[],scope:'Fresh Windows Chrome profile, actual player-owned base and ShockWave 1.201 archives. Separate devices and networks are not covered.'};
  const context=await launchTestContext(chromium,'shockwave',{channel:'chrome',headless:true,viewport:{width:1440,height:900}}, {retain:true});
  report.profile=context.testProfile.path;
+ report.reusedProfile=Boolean(process.env.ZH_PROFILE);report.archive=process.env.ZH_ARCHIVE||null;
  const page=context.pages()[0]||await context.newPage();let game;
  page.on('pageerror',error=>report.errors.push(error.message));
- page.on('console',m=>{if(m.type()==='error')console.log('BROWSER',m.text().slice(0,200))});
+ page.on('console',m=>{if(m.type()==='error'){report.consoleErrors.push(m.text().slice(0,1000));console.log('BROWSER',m.text().slice(0,200))}});
+ page.on('response',r=>{if(r.status()>=400)report.missingRequests.push({url:r.url(),status:r.status()})});
  const timer=setInterval(()=>console.log('SHOCKWAVE',report.stage),20000);
  const rpc=(c,p={})=>game.evaluate(([c,p])=>Promise.race([window.CnCPort.rpc(c,p),new Promise((_,reject)=>setTimeout(()=>reject(Error(c+' RPC timeout')),20000))]),[c,p]);
  const wait=async(label,fn,test,timeout=180000)=>{let state;const end=Date.now()+timeout;while(Date.now()<end){state=await fn();if(test(state))return state;await page.waitForTimeout(500)}await fs.writeFile('.local/shockwave/last-state.json',JSON.stringify(state,null,2));throw Error(label+' timed out')};
@@ -23,9 +25,14 @@ runBrowserTest(async()=>{
   if(await page.locator('#entry').isVisible()){await page.locator('#name').fill('ShockTest');await page.locator('#nameForm button').click();}
   await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:'output/playwright/shockwave-setup-mobile.png'});await page.setViewportSize({width:1440,height:900});await page.screenshot({path:'output/playwright/shockwave-setup.png'});
   report.checks.push('Third game navigation and responsive setup; Zero Hour settings and storage are isolated');
-  report.stage='Actual folder import';if(await page.locator('#setup').isVisible()){await page.locator('#folderInput').setInputFiles(path.resolve('.local/shockwave/player-files'));await page.locator('#lobby').waitFor({state:'visible',timeout:600000});}
+  report.stage='Actual package import';if(await page.locator('#setup').isVisible()){await page.locator(process.env.ZH_ARCHIVE?'#archiveInput':'#folderInput').setInputFiles(path.resolve(process.env.ZH_ARCHIVE||'.local/shockwave/player-files'));await page.waitForFunction(()=>!document.getElementById('lobby').hidden||!document.getElementById('error').hidden,null,{timeout:600000});assert.equal(await page.locator('#error').isVisible(),false,await page.locator('#error').textContent());await page.locator('#lobby').waitFor({state:'visible'});}
   await page.locator('#lobby').waitFor({state:'visible',timeout:180000});report.installation=await page.evaluate(()=>window.ShockwaveAssetLibrary.installedLibrary());assert.equal(report.installation.archives.length,28);assert.equal(report.installation.shockwave.version,'1.201');
   report.checks.push('17 base + 11 checksum-pinned mod archives installed atomically');
+  assert.equal(report.installation.cursorAsset?.entryCount,52);assert.equal(await page.evaluate(()=>window.ShockwaveAssetLibrary.summary().originalCursors),true);
+  const backup=await page.evaluate(async()=>{const entries=await window.ShockwaveAssetLibrary.filesForBackup();return entries.map(e=>({name:e.name,bytes:e.file.size}))});
+  assert.equal(backup.length,80);assert.equal(backup.filter(e=>/\.ani$/i.test(e.name)).length,52);report.checks.push('Fresh complete import and ZIP backup inventory include all 52 original cursors');
+  const incomplete=await page.evaluate(async()=>{const asset=window.ShockwaveAssetLibrary;try{await asset.scan(asset.installedLibrary().archives.map(a=>new File([] ,a.name)));return 'accepted'}catch(e){return e.message}});
+  assert.match(incomplete,/cursor/i);assert.equal(await page.evaluate(()=>window.ShockwaveAssetLibrary.installedLibrary().root),report.installation.root);report.checks.push('Incomplete archive-only installation rejected before replacement');
   await page.screenshot({path:'output/playwright/shockwave-lobby.png'});
   report.stage='Cancelled replacement';await page.locator('#libraryDetails summary').click();await page.locator('#replaceLibrary').click();await page.locator('#folderInput').setInputFiles(path.resolve('.local/shockwave/player-files'));await page.locator('#cancelImport').waitFor({state:'visible'});await page.locator('#cancelImport').click();await wait('Cancel import',()=>page.locator('#chooseFolder').isEnabled(),Boolean);assert.equal(await page.evaluate(()=>window.ShockwaveAssetLibrary.installedLibrary()?.root),report.installation.root);
   await page.locator('#backToLibrary').click();await page.locator('#lobby').waitFor({state:'visible',timeout:180000});report.checks.push('Cancellation keeps the previous complete installation');
@@ -36,6 +43,8 @@ runBrowserTest(async()=>{
   report.maps=await rpc('mapCacheProbe');const map=report.maps.probe.officialMultiplayerMaps.find(m=>/alpine/i.test(m.key));assert.ok(map);report.map=await rpc('realEngineSetSkirmishMap',{mapName:map.key});assert.notEqual(report.map.ok,false);await rpc('clickWindowByName',{name:'SkirmishGameOptionsMenu.wnd:ButtonStart'});
   report.stage='Real mod battlefield';report.battlefield=await wait('Battlefield',()=>rpc('realEngineFrame',{frames:1}),v=>v.frame?.clientState?.gameplay?.inGame&&!v.frame.clientState.gameplay.loadingMap&&v.frame.clientState.gameplay.objectCount>0);
   report.drawables=await rpc('queryDrawables');assert.ok(report.drawables.drawables.allDrawables.some(d=>d.localOwned&&d.name?.startsWith('Spec_')),'Special Weapons general must have actual ShockWave objects');
+  const box=await game.locator('#viewport').boundingBox();await page.mouse.move(box.x+box.width*.55,box.y+box.height*.45);
+  report.cursor=await wait('Native animated cursor',()=>game.evaluate(()=>window.CnCPort.state.browserCursor),v=>v.source==='game_ani_cursor_css'&&v.assetSource==='browser_library_cursor_pack',30000);
   report.renderer=(await rpc('threadedStatus')).status?.graphics?.renderer;
   const shot=await rpc('screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile('output/playwright/shockwave-battlefield.png',Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));
   report.checks.push('Real ShockWave Special Weapons general battlefield with mod-specific objects');
@@ -49,6 +58,7 @@ runBrowserTest(async()=>{
   report.completedBuilding=built.result.objects.find(o=>o.template===command.product.template);report.players=built.result.players;
   assert.ok(report.completedBuilding.template.startsWith('Spec_'));
   report.checks.push('Special Weapons general completes its actual mod barracks through the engine construction command');
+  report.health=await rpc('threadedStatus');assert.equal(report.health.status?.contextLost,false);assert.equal(report.health.status?.loop?.error,null);assert.equal(report.health.status?.loop?.crcMismatch,false);
   report.stage='Native mod save creation';await game.locator('#viewport').press('Escape');
   await wait('Native quit menu',()=>rpc('queryWindowByName',{name:'QuitMenu.wnd:ButtonSaveLoad'}),v=>v.result?.clickable);
   await rpc('clickWindowByName',{name:'QuitMenu.wnd:ButtonSaveLoad'});
@@ -64,7 +74,7 @@ runBrowserTest(async()=>{
   report.stage='Mod save persistence after relaunch';await page.goto('http://localhost:8093/shockwave/');await page.locator('#lobby').waitFor({state:'visible',timeout:180000});await page.locator('#solo').click();await page.waitForFunction(()=>document.getElementById('gameFrame').contentWindow?.document.getElementById('loading')?.hidden===true,null,{timeout:240000});game=page.frames().find(f=>f.url().includes('/harness/game.html'));
   report.restoredSaves=await rpc('listSaves');assert.deepEqual(report.restoredSaves.files,report.saves.files);assert.equal(report.restoredSaves.dir,report.saves.dir);assert.equal(report.restoredSaves.mounted,true);
   report.checks.push('Actual ShockWave save file restored through IndexedDB after clean exit and a fresh engine');
-  assert.equal(report.errors.length,0);report.status='passed';
+  assert.equal(report.errors.length,0);assert.equal(report.missingRequests.length,0);assert.equal(report.consoleErrors.length,0);report.status='passed';
  }catch(e){report.status='failed';report.failure=e.stack;process.exitCode=1;report.siteError=await page.locator('#error').textContent().catch(()=>null);report.gameStatus=await page.locator('#gameStatus').textContent().catch(()=>null);report.engineUi=game?await rpc('agentUiSnapshot').catch(e=>({error:e.message})):null;await page.screenshot({path:'output/playwright/shockwave-failure.png'}).catch(()=>{});}
- finally{clearInterval(timer);await fs.writeFile('.local/shockwave/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors,siteError:report.siteError,gameStatus:report.gameStatus,profile:report.profile},null,2));await context.close()}
+ finally{clearInterval(timer);await fs.writeFile('.local/shockwave/'+(process.env.ZH_ARCHIVE?'zip-verification':'verification')+'.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors,missingRequests:report.missingRequests,consoleErrors:report.consoleErrors,siteError:report.siteError,gameStatus:report.gameStatus,profile:report.profile},null,2));await context.close()}
 });

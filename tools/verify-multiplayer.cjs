@@ -3,19 +3,28 @@ const {chromium}=require('playwright');const fs=require('node:fs/promises');cons
 runBrowserTest(async()=>{
  const shockwave=process.env.ZH_GAME==='shockwave';
  const software=process.env.ZH_RENDERER!=='hardware';
- const report={game:shockwave?'shockwave':'zero-hour',checks:[],errors:[],rendererRequested:software?'SwiftShader':'Default Windows Chrome hardware path',scope:'Two local Windows Chrome browser profiles on one PC; real archives and engine instances. Does not establish two computers or different networks.'};
- const contexts=[],clients=[];let timer;
+ const report={game:shockwave?'shockwave':'zero-hour',checks:[],errors:[],rendererRequested:software?'SwiftShader':'Default Windows Chrome hardware path',scope:'Two local Windows Chrome browser profiles on one PC; real archives and engine instances. Does not establish two computers or different networks.',publicService:process.env.ZH_PUBLIC_SERVICE==='1'};
+ const contexts=[],clients=[];let timer,preparingPage;
  const wait=async(label,fn,predicate,timeout=120000)=>{const end=Date.now()+timeout;let v;while(Date.now()<end){v=await fn();if(predicate(v))return v;await new Promise(r=>setTimeout(r,500));}await fs.writeFile('.local/multiplayer-last-state.json',JSON.stringify(v,null,2));throw Error(label+' timed out');};
- const rpc=(client,command,payload={})=>client.game.evaluate(([c,p])=>Promise.race([window.CnCPort.rpc(c,p),new Promise((_,reject)=>setTimeout(()=>reject(Error(c+' RPC timeout')),30000))]),[command,payload]);
+ const rpc=(client,command,payload={})=>{
+  // A blocked renderer cannot run its own browser-side timeout.
+  let timer;const limit=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(command+' RPC timeout')),30000)});
+  return Promise.race([client.game.evaluate(([c,p])=>window.CnCPort.rpc(c,p),[command,payload]),limit]).finally(()=>clearTimeout(timer));
+ };
  const state=async client=>(await rpc(client,'realEngineLanState')).lan;
  try{
-  timer=setInterval(()=>console.log('MULTIPLAYER',report.stage),20000);
+  timer=setInterval(async()=>{console.log('MULTIPLAYER',report.stage);if(preparingPage&&/^Preparing/.test(report.stage))console.log('IMPORT',await preparingPage.locator('#installProgress').textContent().catch(()=>''),await preparingPage.locator('#error').textContent().catch(()=>''))},20000);
   for(const [profile,name]of [[shockwave?'shockwave-host':'acceptance-browser','FieldTest'],[shockwave?'shockwave-guest':'guest-browser','FieldGuest']]){
    report.stage=`Preparing ${name}`;
-   const context=await launchTestContext(chromium,path.resolve('.local/'+profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]},{reuseProfile:profile.endsWith('host')||profile==='acceptance-browser'?(process.env.ZH_HOST_PROFILE||null):(process.env.ZH_GUEST_PROFILE||null)});contexts.push(context);const page=context.pages()[0]||await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log(name,m.text().slice(0,180))});await page.goto(process.env.ZH_SITE_URL||(shockwave?'http://localhost:8093/shockwave/':'http://localhost:8093/'));await page.waitForTimeout(1000);
-   if(shockwave&&context.testProfile.owned===false)await page.locator('#lobby').waitFor({state:'visible',timeout:180000});
+   const context=await launchTestContext(chromium,path.resolve('.local/'+profile),{channel:'chrome',headless:true,viewport:{width:1440,height:900},args:software?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]},{reuseProfile:profile.endsWith('host')||profile==='acceptance-browser'?(process.env.ZH_HOST_PROFILE||null):(process.env.ZH_GUEST_PROFILE||null)});contexts.push(context);
+   if(report.publicService)await context.route('**/network-config.json',route=>route.fulfill({path:path.resolve('public/network-config.json'),contentType:'application/json'}));
+   const page=context.pages()[0]||await context.newPage();preparingPage=page;page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log(name,m.text().slice(0,180))});await page.goto(process.env.ZH_SITE_URL||(shockwave?'http://localhost:8093/shockwave/':'http://localhost:8093/'));await page.waitForFunction(()=>typeof document.getElementById('nameForm').onsubmit==='function');
+   if(shockwave&&context.testProfile.owned===false)await page.waitForFunction(()=>!document.getElementById('lobby').hidden||!document.getElementById('error').hidden,null,{timeout:180000});
+   if(await page.locator('#lobby').isVisible()&&(await page.locator('#commander').textContent()).trim()!==name)await page.locator('#changeName').click();
    if(await page.locator('#entry').isVisible()){await page.locator('#name').fill(name);await page.locator('#nameForm button').click();}
-   if(await page.locator('#setup').isVisible()){await page.locator('#folderInput').setInputFiles(shockwave?path.resolve('.local/shockwave/player-files'):'C:\\Program Files (x86)\\DODI-Repacks\\Generals Zero Hour\\Data');await page.locator('#lobby').waitFor({state:'visible',timeout:600000});}
+   if(shockwave&&context.testProfile.owned===false)await page.waitForFunction(()=>!document.getElementById('lobby').hidden||!document.getElementById('error').hidden,null,{timeout:180000});
+   await page.waitForFunction(()=>!document.getElementById('setup').hidden||!document.getElementById('lobby').hidden,null,{timeout:180000});
+   if(await page.locator('#setup').isVisible()){await page.locator(shockwave&&process.env.ZH_ARCHIVE?'#archiveInput':'#folderInput').setInputFiles(shockwave?path.resolve(process.env.ZH_ARCHIVE||'.local/shockwave/player-files'):'C:\\Program Files (x86)\\DODI-Repacks\\Generals Zero Hour\\Data');await page.waitForFunction(()=>!document.getElementById('lobby').hidden||!document.getElementById('error').hidden,null,{timeout:600000});if(await page.locator('#error').isVisible())throw Error(await page.locator('#error').textContent());await page.locator('#lobby').waitFor({state:'visible'});}
    clients.push({page,name:(await page.locator('#commander').textContent()).trim()});
   }
   const [host,guest]=clients;report.stage='Create real website room';await host.page.locator('#createRoom').click();await host.page.locator('#room').waitFor({state:'visible',timeout:180000});report.code=await host.page.locator('#roomTitle').textContent();
@@ -69,6 +78,6 @@ runBrowserTest(async()=>{
   report.checks.push('30-second two-profile network observation without engine CRC mismatch');
   for(const [i,c]of clients.entries()){const shot=await rpc(c,'screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile(`output/playwright/multiplayer-${i?'guest':'host'}.png`,Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));}
   report.status='passed preliminary local startup; full match and separate networks pending';
- }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;report.failureStates=await Promise.all(clients.filter(c=>c.game).map(async c=>({name:c.name,url:c.game.url(),siteStatus:await c.page.locator('#gameStatus').textContent(),engineStatus:await c.game.locator('#status').textContent(),lan:await state(c),transport:await rpc(c,'browserWebRtcEndpointState'),frame:await rpc(c,'realEngineFrame',{frames:1})})));for(const c of clients.filter(c=>c.game)){const shot=await rpc(c,'screenshot');if(shot.screenshot?.dataUrl)await fs.writeFile(`output/playwright/multiplayer-${c.name}.png`,Buffer.from(shot.screenshot.dataUrl.split(',')[1],'base64'));}}
+ }catch(e){report.status='failed';report.failure=e.message;process.exitCode=1;report.failureStates=await Promise.all(clients.filter(c=>c.game).map(async c=>({name:c.name,url:c.game.url(),lan:await state(c).catch(e=>({error:e.message})),transport:await rpc(c,'browserWebRtcEndpointState').catch(e=>({error:e.message}))})));}
  finally{clearInterval(timer);await fs.writeFile('.local/'+(shockwave?'shockwave/':'')+'multiplayer-verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify({status:report.status,failure:report.failure,checks:report.checks,errors:report.errors},null,2));for(const c of contexts)await c.close();}
 });

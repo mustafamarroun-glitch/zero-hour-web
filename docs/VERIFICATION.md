@@ -2,6 +2,49 @@
 
 Updated 2026-10-09. The source project's earlier results are context only; the following checks concern Zero Hour Web.
 
+## Version 3.1.2 package and deployment audit
+
+The standard Deflate level 9 player ZIP contains exactly 80 files: 17 base
+archives, 11 active mod archives and 52 original cursors. All copies match
+their sources; 30,296 BIG entries have valid bounds and no duplicate names.
+Every ZIP entry was fully restored and passed CRC and SHA-256 verification.
+Expanded size is 2,254,204,557 bytes; compressed size is 1,389,437,189 bytes
+(38.36% smaller). ZIP SHA-256:
+`8f729249a0696f8371e2428a97322c9185c551ac6da60c65263932315e4ee313`.
+The exact included/excluded inventory stays private alongside the game ZIP.
+
+The fresh ZIP import passed all 80 files and original animated cursor rendering
+on an actual Special Weapons battlefield. The installed profile then passed
+completed mod barracks construction, clean exit, native save creation and
+reload persistence, with zero page errors, console errors or failed HTTP asset
+requests. NVIDIA hardware rendering had no graphics context loss, loop error
+or engine CRC mismatch. A test assertion initially used the wrong status field;
+the actual health data was clean and the corrected check passed on the same
+ZIP-installed profile. Incomplete cursor sets are now rejected before replacing
+an installation; website backup inventories retain all 52 cursor files.
+
+All three launchers passed headerless static-host startup. Nine archive safety
+cases passed, including CRC failure, unsafe paths, encrypted files and inflated
+size limits. The six required engine profiling tests and project source/runtime
+checks passed. Publication remains separate from this local build.
+
+The previous public tunnel no longer resolved. The project preview service was
+restarted and a new temporary tunnel passed public ShockWave create/join and
+signaling checks. This PC must remain awake; stable hosting, real separate-device
+Internet gameplay and Mac acceptance are still separate release gates.
+
+The current public-service engine audit synchronized two native players, map,
+factions, colors and teams and reached the battlefield on the hardware path.
+It stalled at the movement-replication check. A software retry also remained
+incomplete at match startup. Repeated test installs put C: under storage
+pressure; one retained guest copy required reimport. Only ownership-verified,
+closed test profiles were cleared, recovering about 11.7 GB over the audit.
+No personal installation, download, game package or project backup was deleted.
+These runs do not pass the current multiplayer release gate. A completed match
+on two physical devices and a stable service remain necessary before calling
+the online release ready. Public protocol success and earlier 3.1 local peer
+results must not be substituted for that acceptance.
+
 ## Version 3.1.1 ShockWave cursor repair
 
 The private prepared folder now contains the 52 original ANI cursor files,
