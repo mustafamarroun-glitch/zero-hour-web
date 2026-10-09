@@ -2,13 +2,12 @@
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {PROFILES} from '../public/game-profiles.mjs';
 export async function syncLaunchers({check=false}={}){
- const template=await readFile(new URL('../public/zero-hour.html',import.meta.url),'utf8');
+ const template=await readFile(new URL('../public/zero-hour/index.html',import.meta.url),'utf8');
  let html=template;
  html=html.replace('<html lang="en"','<html data-game="yuri" lang="en"')
   .replace('Play Generals ZeroHour in your browser using your own local game files.','Play Yuri’s Revenge in your browser using your own local game files.')
   .replace(/<title>ZeroHour Web ([^<]+)<\/title>/,'<title>Yuri’s Revenge · ZeroHour Web $1</title>')
-  .replaceAll('src="./','src="../').replaceAll('href="./','href="../')
-  .replace('<a href="../zero-hour.html" aria-current="page">ZeroHour</a><a href="../yuri/">Yuri’s Revenge</a>','<a href="../zero-hour.html">ZeroHour</a><a href="./" aria-current="page">Yuri’s Revenge</a>')
+  .replace('<a href="../zero-hour/" aria-current="page">ZeroHour</a><a href="../yuri/">Yuri’s Revenge</a>','<a href="../zero-hour/">ZeroHour</a><a href="./" aria-current="page">Yuri’s Revenge</a>')
   .replace('Command &amp; Conquer: Generals ZeroHour, directly in your browser.','Command &amp; Conquer: Yuri’s Revenge, directly in your browser.')
   .replace('Import your compatible Generals + ZeroHour files.','Import your compatible Red Alert 2 + Yuri’s Revenge files.')
   .replace('installation’s <strong>Data folder</strong>','<strong>game folder</strong>')
@@ -28,8 +27,7 @@ export async function syncLaunchers({check=false}={}){
  let shockwave=template.replace('<html lang="en"','<html data-game="shockwave" lang="en"')
   .replace('Play Generals ZeroHour in your browser using your own local game files.','Play ShockWave 1.201 skirmish and friend multiplayer using your own local game files.')
   .replace(/<title>ZeroHour Web ([^<]+)<\/title>/,'<title>ShockWave 1.201 · ZeroHour Web $1</title>')
-  .replaceAll('src="./','src="../').replaceAll('href="./','href="../')
-  .replace('<a href="../zero-hour.html" aria-current="page">ZeroHour</a>','<a href="../zero-hour.html">ZeroHour</a>')
+  .replace('<a href="../zero-hour/" aria-current="page">ZeroHour</a>','<a href="../zero-hour/">ZeroHour</a>')
   .replace('<a href="../shockwave/">ShockWave</a>','<a href="./" aria-current="page">ShockWave</a>')
   .replace('Command &amp; Conquer: Generals ZeroHour, directly in your browser.','ShockWave 1.201. More generals, new units, and your own battlefield.')
   .replace('Import your compatible Generals + ZeroHour files.','Import your compatible ZeroHour base + ShockWave 1.201 files.')

@@ -34,7 +34,10 @@ const server=createServer(async(req,res)=>{
     }
     let path=resolve(root,'.'+decodeURIComponent(url.pathname));
     if(path!==root&&!path.startsWith(root+'/')&&!path.startsWith(root+'\\'))throw Error('Forbidden');
-    if((await stat(path)).isDirectory())path=resolve(path,'index.html');
+    if((await stat(path)).isDirectory()){
+      if(!url.pathname.endsWith('/')){res.writeHead(308,{...headers,Location:url.pathname+'/'+url.search});res.end();return;}
+      path=resolve(path,'index.html');
+    }
     const bytes=await readFile(path);res.writeHead(200,{...headers,'Content-Type':types[extname(path)]||'application/octet-stream'});res.end(bytes);
   }catch{res.writeHead(404,headers);res.end('Not found');}
 });

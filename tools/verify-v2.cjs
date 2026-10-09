@@ -13,7 +13,7 @@ runBrowserTest(async()=>{
  const wait=async(label,fn,predicate,timeout=60000)=>{let last;const deadline=Date.now()+timeout;while(Date.now()<deadline){last=await fn();if(predicate(last))return last;await page.waitForTimeout(300)}await fs.writeFile('.local/v2-last-state.json',JSON.stringify(last,null,2));throw Error(label+' timeout')};
  const library=()=>page.evaluate(()=>window.ZeroHAssetLibrary.installedLibrary());
  try{
-  report.stage='Interface and theme';await page.goto('http://localhost:8093/zero-hour.html');await page.waitForFunction(()=>typeof document.getElementById('nameForm').onsubmit==='function');
+  report.stage='Interface and theme';await page.goto('http://localhost:8093/zero-hour/');await page.waitForFunction(()=>typeof document.getElementById('nameForm').onsubmit==='function');
   if(!process.env.ZH_V2_GAME_ONLY){
   await page.evaluate(()=>localStorage.removeItem('zhweb-settings-v2'));await page.reload();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
   await page.screenshot({path:'output/playwright/v2-entry-dark.png'});

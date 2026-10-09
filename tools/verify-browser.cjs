@@ -10,7 +10,7 @@ runBrowserTest(async()=>{
  const timer=setInterval(async()=>console.log('STAGE',report.stage,await page.frameLocator('#gameFrame').locator('#status').textContent({timeout:500}).catch(()=>'')),20000);
  try{
   report.browser=await context.browser().version();report.userAgent=await page.evaluate(()=>navigator.userAgent);
-  await page.goto('http://localhost:8093/zero-hour.html');
+  await page.goto('http://localhost:8093/zero-hour/');
   report.stage='Commander entry';
   if(await page.locator('#entry').isVisible()){await page.locator('#name').fill('FieldTest');await page.locator('#nameForm button').click();}
   await page.waitForTimeout(1500);

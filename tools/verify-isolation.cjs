@@ -7,7 +7,7 @@ runBrowserTest(async()=>{
  try{
   context=await launchTestContext(chromium,path.resolve('.local/pages-isolation-profile'),{channel:'chrome',headless:true});const page=context.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()===404)report.missing.push(r.url())});
   await page.goto('http://localhost:8094/zero-hour-web/storage-probe.html');await page.evaluate(async()=>{for(const key of Object.keys(localStorage))if(key.startsWith('zero-hour-web-v1:'))localStorage.removeItem(key);localStorage.setItem('other-product-preservation','keep');const root=await navigator.storage.getDirectory();await root.getDirectoryHandle('other-product-preservation',{create:true});});
-  const initial=await page.goto('http://localhost:8094/zero-hour-web/zero-hour.html');report.initialHeaders=initial.headers();
+  const initial=await page.goto('http://localhost:8094/zero-hour-web/zero-hour/');report.initialHeaders=initial.headers();
   await page.waitForFunction(()=>crossOriginIsolated&&navigator.serviceWorker.controller,null,{timeout:45000});await page.locator('#entry').waitFor({state:'visible'});
   report.isolation=await page.evaluate(()=>({isolated:crossOriginIsolated,sharedMemory:typeof SharedArrayBuffer==='function',scope:navigator.serviceWorker.controller.scriptURL}));
   await page.locator('#name').fill('PagesTest');await page.locator('#nameForm button').click();await page.locator('#setup').waitFor({state:'visible'});await page.reload();await page.locator('#setup').waitFor({state:'visible'});

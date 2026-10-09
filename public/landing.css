@@ -2,8 +2,6 @@
 .landing .masthead nav{display:flex;flex-wrap:wrap;gap:28px;font-size:14px}
 .landing .wordmark{text-transform:none}
 .landing main{padding-top:58px;padding-bottom:50px}
-.skip-link{position:fixed;top:12px;left:12px;z-index:20;padding:12px 18px;background:var(--paper);border:1px solid var(--control);transform:translateY(-180%)}
-.skip-link:focus{transform:translateY(0)}
 .landing-intro{display:grid;grid-template-columns:1.2fr 1fr;gap:70px;align-items:center;margin-bottom:48px}
 .landing-intro h1{font-size:clamp(48px,6vw,84px);margin:0;line-height:.98}
 .landing-intro>div>p:first-child{font-size:22px;margin-bottom:14px}

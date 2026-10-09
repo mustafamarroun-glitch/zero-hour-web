@@ -1,6 +1,6 @@
 // Older ZeroHour room invites used the site root. Preserve the complete invite.
 if(new URLSearchParams(location.search).has('room')){
- const gameURL=new URL('./zero-hour.html',location.href);
+ const gameURL=new URL('./zero-hour/',location.href);
  gameURL.search=location.search;gameURL.hash=location.hash;
  location.replace(gameURL.href);
 }

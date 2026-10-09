@@ -7,7 +7,7 @@ runBrowserTest(async()=>{
   const context=await launchTestContext(chromium,path.resolve('.local/v21-storage-browser'),{channel:'chrome',headless:true,viewport:{width:1440,height:900}});
   const page=context.pages()[0];page.on('pageerror',e=>report.errors.push(e.message));
   try{
-    await page.goto('http://localhost:8094/zero-hour.html');await page.waitForFunction(()=>!!window.ZeroHAssetLibrary);
+    await page.goto('http://localhost:8094/zero-hour/');await page.waitForFunction(()=>!!window.ZeroHAssetLibrary);
     const recovery=await page.evaluate(async()=>{
       const lib=window.ZeroHAssetLibrary,root=await navigator.storage.getDirectory(),parent=await root.getDirectoryHandle('cnc-library',{create:true}),folder=await parent.getDirectoryHandle('install-storage-fixture',{create:true});
       const names=window.ZeroHArchiveSpecs.map(a=>a.name),key='zeroh-installed-library.combined.v6';

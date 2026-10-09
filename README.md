@@ -10,7 +10,7 @@ For multiplayer, create a room and copy its invite, or join a friend’s eight-c
 
 ## Landing page
 
-Version 3.2.0 opens on the game selection landing page. Choose ZeroHour, Yuri’s Revenge, ShockWave, or Stream game before entering a launcher. ZeroHour’s direct launcher is `/zero-hour.html`; old root `?room=` invites are forwarded with their query and fragment intact. Existing storage namespaces and installed libraries are retained. See [docs/LANDING-PAGE.md](docs/LANDING-PAGE.md) for verification and release behavior.
+Version 3.2.0 opens on the game selection landing page. Choose ZeroHour, Yuri’s Revenge, ShockWave, or Stream game before entering a launcher. All game launchers use matching folder URLs: `/zero-hour/`, `/yuri/`, and `/shockwave/`. The old `/zero-hour.html` address and root `?room=` invites forward to ZeroHour with their query and fragment intact. Existing storage namespaces and installed libraries are retained. See [docs/LANDING-PAGE.md](docs/LANDING-PAGE.md) for verification and release behavior.
 
 ## Start
 

@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const {launchTestContext,runBrowserTest}=require('./test-browser-profile.cjs');
 runBrowserTest(async()=>{
  const results=[];
- for(const routePath of ['yuri/','shockwave/','zero-hour.html']){
+ for(const routePath of ['yuri/','shockwave/','zero-hour/']){
   const ctx=await launchTestContext(chromium,'static-startup',{channel:'chrome',headless:true}),events=[];
   try{
    await ctx.exposeFunction('recordStartupState',value=>events.push(value));
@@ -12,7 +12,7 @@ runBrowserTest(async()=>{
     const observer=new MutationObserver(()=>{const button=document.querySelector('#nameForm button');if(button&&!button.disabled)window.recordStartupState({event:'ready',isolated:crossOriginIsolated,url:location.href})});
     observer.observe(document,{subtree:true,attributes:true,attributeFilter:['disabled']});
    });
-   const url='http://localhost:8093/'+routePath;
+   const url=new URL(routePath,process.env.ZH_SITE_URL||'http://localhost:8093/').href;
    await ctx.route(url,async route=>{
     const response=await route.fetch(),headers={...response.headers()};
     delete headers['cross-origin-opener-policy'];delete headers['cross-origin-embedder-policy'];delete headers['cross-origin-resource-policy'];
